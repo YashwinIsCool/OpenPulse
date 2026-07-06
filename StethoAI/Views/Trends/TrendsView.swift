@@ -1,0 +1,222 @@
+import SwiftUI
+import SwiftData
+import Charts
+
+struct TrendsView: View {
+    let user: User
+
+    @Query(sort: \HeartRateReading.timestamp, order: .forward) private var allReadings: [HeartRateReading]
+    @Query(sort: \HeartSoundRecording.timestamp, order: .reverse) private var recordings: [HeartSoundRecording]
+    @Query(sort: \BreathingSession.timestamp, order: .reverse) private var breathingSessions: [BreathingSession]
+
+    @State private var period: String = "30D"
+    private let periods = ["7D", "30D", "90D", "1Y"]
+
+    private var periodDays: Int {
+        switch period {
+        case "7D": return 7
+        case "30D": return 30
+        case "90D": return 90
+        default: return 365
+        }
+    }
+
+    private var filteredReadings: [HeartRateReading] {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -periodDays, to: .now) ?? .distantPast
+        return allReadings.filter { $0.timestamp >= cutoff }
+    }
+
+    private var previousPeriodReadings: [HeartRateReading] {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -periodDays, to: .now) ?? .distantPast
+        let priorCutoff = Calendar.current.date(byAdding: .day, value: -(periodDays * 2), to: .now) ?? .distantPast
+        return allReadings.filter { $0.timestamp >= priorCutoff && $0.timestamp < cutoff }
+    }
+
+    private var currentAverage: Int? {
+        average(of: filteredReadings)
+    }
+
+    private var previousAverage: Int? {
+        average(of: previousPeriodReadings)
+    }
+
+    private var averageHRV: Double? {
+        let values = filteredReadings.compactMap { $0.hrvMs }
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
+    private var daysTracked: Int {
+        Set(filteredReadings.map { Calendar.current.startOfDay(for: $0.timestamp) }).count
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: Tokens.Spacing.lg) {
+                    HStack {
+                        Text("Trends")
+                            .font(Tokens.Fonts.pageTitle)
+                            .tracking(Tokens.Tracking.pageTitle)
+                            .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                        Spacer()
+                    }
+                    .padding(.top, Tokens.Spacing.sm)
+
+                    SegmentedToggle(options: periods, selection: $period)
+
+                    heroSummary
+
+                    chartCard
+
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Tokens.Spacing.md) {
+                        StatTile(icon: "heart.fill", label: "Resting HR Avg", value: currentAverage.map { "\($0) bpm" } ?? "—")
+                        StatTile(icon: "waveform.path.ecg", label: "HRV Avg", value: averageHRV.map { "\(Int($0)) ms" } ?? "—")
+                        StatTile(icon: "flame.fill", label: "Streak", value: "\(user.streakCount) days")
+                        StatTile(icon: "calendar", label: "Days Tracked", value: "\(daysTracked)")
+                    }
+
+                    heartSoundHistory
+                }
+                .padding(Tokens.Spacing.lg)
+            }
+            .background(Tokens.Colors.adaptiveBackground)
+        }
+    }
+
+    private var heroSummary: some View {
+        HeroCard {
+            VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
+                Text("AVERAGE HEART RATE")
+                    .font(Tokens.Fonts.microLabel)
+                    .tracking(Tokens.Tracking.microLabel)
+                    .foregroundStyle(.white.opacity(0.92))
+
+                if let currentAverage {
+                    HStack(alignment: .lastTextBaseline, spacing: Tokens.Spacing.xs) {
+                        Text("\(currentAverage)")
+                            .font(.system(size: 48, weight: .bold))
+                            .foregroundStyle(.white)
+                        Text("bpm")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+
+                    if let previousAverage {
+                        let diff = currentAverage - previousAverage
+                        HStack(spacing: Tokens.Spacing.xs) {
+                            Image(systemName: diff <= 0 ? "arrow.down" : "arrow.up")
+                            Text("\(abs(diff)) bpm vs previous \(period)")
+                        }
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                    }
+                } else {
+                    Text("No data yet")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var chartCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
+                Text("Heart rate over time")
+                    .font(Tokens.Fonts.cardTitle)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+
+                if filteredReadings.isEmpty {
+                    Text("Complete a heart rate check to start your chart.")
+                        .font(Tokens.Fonts.body)
+                        .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+                        .frame(maxWidth: .infinity, minHeight: 160)
+                } else {
+                    Chart(filteredReadings) { reading in
+                        AreaMark(
+                            x: .value("Date", reading.timestamp),
+                            y: .value("BPM", reading.bpm)
+                        )
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Tokens.Colors.chartAreaFillTop, Tokens.Colors.chartAreaFillBottom],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        LineMark(
+                            x: .value("Date", reading.timestamp),
+                            y: .value("BPM", reading.bpm)
+                        )
+                        .foregroundStyle(Tokens.Colors.chartLineRed)
+                        .lineStyle(StrokeStyle(lineWidth: 2))
+                    }
+                    .frame(height: 180)
+                    .chartYAxis {
+                        AxisMarks(position: .leading)
+                    }
+                }
+            }
+        }
+    }
+
+    private var heartSoundHistory: some View {
+        VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
+            Text("Heart sound history")
+                .font(Tokens.Fonts.sectionHeading)
+                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if recordings.isEmpty {
+                Card {
+                    Text("No heart sound recordings yet.")
+                        .font(Tokens.Fonts.body)
+                        .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+                }
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Tokens.Spacing.md) {
+                        ForEach(recordings) { recording in
+                            heartSoundTile(recording)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func heartSoundTile(_ recording: HeartSoundRecording) -> some View {
+        VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
+            Text(recording.classification.rawValue)
+                .font(Tokens.Fonts.cardTitle)
+                .foregroundStyle(classificationColor(recording.classification))
+            Text(recording.timestamp.formatted(date: .abbreviated, time: .omitted))
+                .font(Tokens.Fonts.caption)
+                .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+        }
+        .padding(Tokens.Spacing.md)
+        .frame(width: 140, alignment: .leading)
+        .background(Tokens.Colors.adaptiveCard)
+        .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous)
+                .stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1)
+        )
+    }
+
+    private func classificationColor(_ classification: HeartSoundClassification) -> Color {
+        switch classification {
+        case .normal: return Tokens.Colors.successGreen
+        case .possibleMurmur: return Tokens.Colors.warningAmber
+        case .abnormal: return Tokens.Colors.dangerDark
+        }
+    }
+
+    private func average(of readings: [HeartRateReading]) -> Int? {
+        guard !readings.isEmpty else { return nil }
+        let sum = readings.reduce(0) { $0 + $1.bpm }
+        return Int((Double(sum) / Double(readings.count)).rounded())
+    }
+}

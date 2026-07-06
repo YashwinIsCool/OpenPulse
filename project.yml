@@ -1,0 +1,43 @@
+name: StethoAI
+options:
+  bundleIdPrefix: com.stethoai
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: "FDQTY6VYF2"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_PREVIEWS: YES
+    TARGETED_DEVICE_FAMILY: "1"
+
+targets:
+  StethoAI:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: StethoAI
+    info:
+      path: StethoAI/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: StethoAI
+        UILaunchScreen: {}
+        UIRequiredDeviceCapabilities: [armv7]
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSCameraUsageDescription: "StethoAI uses your camera to measure your heart rate by detecting subtle color changes in your fingertip (PPG). No images or video are stored."
+        NSMicrophoneUsageDescription: "StethoAI uses your microphone to record heart sounds when you hold your phone against your chest. Recordings stay on your device unless you choose to share them."
+        NSUserNotificationsUsageDescription: "StethoAI sends reminders for your daily heart check, breathing exercises, and weekly insights."
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.stethoai.app
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SUPPORTS_MACCATALYST: NO
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
