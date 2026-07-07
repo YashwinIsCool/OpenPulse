@@ -25,6 +25,8 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
     @Published var signalQuality: PPGSignalQuality = .searching
     /// True once a good signal has locked and the 30-second countdown is running.
     @Published var isMeasuring = false
+    /// True when measuring is temporarily paused because the finger slipped off.
+    @Published var isPaused = false
 
     /// Called once when the 30-second window completes. `bpm` is nil if a clear signal couldn't be extracted.
     var onFinished: ((_ bpm: Int?, _ hrvMs: Double?) -> Void)?
@@ -34,11 +36,15 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
     private let lockConfirmSeconds: Double = 1.2
     private let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "com.stethoai.ppg.session")
-    private var samples: [(t: Double, green: Double, red: Double)] = []
+    private var samples: [(t: Double, green: Double, red: Double)] = []       // rolling window for waveform + quality
+    private var measurementSamples: [(t: Double, green: Double, red: Double)] = [] // clean samples accumulated while measuring
     private var startTime: CFAbsoluteTime = 0
-    private var measureStartT: Double?      // sample-time at which measuring began
     private var goodSince: Double?          // sample-time the signal first became good
     private var lastQualityEvalT: Double = 0
+    // Active-time accounting so pauses (finger off) don't count toward the 30s.
+    private var isMeasuringInternal = false
+    private var accumulatedActive: Double = 0
+    private var activeSegmentStart: Double?
     private var displayTimer: Timer?
     private var simulatorTimer: Timer?
     private var torchTimer: Timer?
@@ -47,15 +53,21 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
     private var exposureLocked = false
     private var finished = false
 
+    private func nowT() -> Double { CFAbsoluteTimeGetCurrent() - startTime }
+
     func start() {
         finished = false
         exposureLocked = false
         isMeasuring = false
+        isMeasuringInternal = false
+        isPaused = false
         signalQuality = .searching
-        measureStartT = nil
         goodSince = nil
         lastQualityEvalT = 0
+        accumulatedActive = 0
+        activeSegmentStart = nil
         samples.removeAll()
+        measurementSamples.removeAll()
         waveform.removeAll()
         secondsRemaining = Int(duration)
         startTime = CFAbsoluteTimeGetCurrent()
@@ -200,11 +212,15 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
 
     private func tick() {
         // The countdown only runs once we've locked a good signal and started measuring.
-        guard let measureStartT else {
+        guard isMeasuringInternal else {
             secondsRemaining = Int(duration)
             return
         }
-        let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) - measureStartT
+        // Paused segments (finger off) don't count toward the 30s of active measurement.
+        var elapsed = accumulatedActive
+        if !isPaused, let segStart = activeSegmentStart {
+            elapsed += nowT() - segStart
+        }
         secondsRemaining = max(0, Int(duration) - Int(elapsed))
         if elapsed >= duration {
             finish()
@@ -216,7 +232,8 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
         // immediately with a synthetic ~72bpm signal.
         signalQuality = .good
         isMeasuring = true
-        measureStartT = 0
+        isMeasuringInternal = true
+        activeSegmentStart = 0
         let simulatedBPM = 72.0
         let freq = simulatedBPM / 60.0
         simulatorTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
@@ -269,6 +286,15 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
     private func appendSample(t: Double, green: Double, red: Double) {
         guard !finished else { return }
         samples.append((t, green, red))
+        // Keep the rolling buffer bounded (~5s) — it only feeds the waveform and the
+        // live quality window; the final computation uses measurementSamples.
+        if samples.count > 160 { samples.removeFirst(samples.count - 160) }
+
+        // Only the clean, actively-measured samples feed the final BPM.
+        if isMeasuringInternal && !isPaused {
+            measurementSamples.append((t, green, red))
+        }
+
         // Visualize the red channel (strongest pulsatile signal through a fingertip).
         let recent = samples.suffix(60).map { $0.red }
         if let minV = recent.min(), let maxV = recent.max(), maxV > minV {
@@ -277,23 +303,22 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
             waveform = recent.map { _ in 0.5 }
         }
 
-        updateSignalQualityAndLock(currentT: t)
+        updateSignalQuality(currentT: t)
     }
 
-    /// Evaluates the last few seconds of signal, updates the live quality state, and
-    /// starts the timed measurement once a good pulse has held steadily.
-    private func updateSignalQualityAndLock(currentT: Double) {
-        // Once measuring has begun, we stop re-locking — just keep counting down.
-        guard measureStartT == nil else { return }
+    /// Evaluates the last few seconds of signal and drives the state machine:
+    /// before measuring it locks once a good pulse holds; during measuring it
+    /// pauses when the finger slips off and resumes when it returns.
+    private func updateSignalQuality(currentT: Double) {
+        // The simulator path has no real finger to assess; it stays "good" and never pauses.
+        guard cameraAvailable else { return }
         // Throttle the (relatively heavy) analysis to a few times per second.
         guard currentT - lastQualityEvalT >= 0.25 else { return }
         lastQualityEvalT = currentT
 
-        // Need a couple seconds of data (and, for the camera path, exposure locked)
-        // before quality can be judged.
         let windowStart = currentT - 4.0
         let window = samples.filter { $0.t >= windowStart }
-        guard window.count >= 30 else { signalQuality = .searching; return }
+        guard window.count >= 30 else { if !isMeasuringInternal { signalQuality = .searching }; return }
 
         let span = window.last!.t - window.first!.t
         guard span > 1.5 else { return }
@@ -304,24 +329,50 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
             green: window.map { $0.green },
             fs: fs
         )
-
         signalQuality = quality
-        if quality == .good {
-            if goodSince == nil { goodSince = currentT }
-            if let since = goodSince, currentT - since >= lockConfirmSeconds {
-                beginMeasuring(at: currentT)
+
+        if !isMeasuringInternal {
+            // Locking phase: start measuring once a good pulse has held steadily.
+            if quality == .good {
+                if goodSince == nil { goodSince = currentT }
+                if let since = goodSince, currentT - since >= lockConfirmSeconds {
+                    beginMeasuring(at: currentT)
+                }
+            } else {
+                goodSince = nil
             }
         } else {
-            goodSince = nil
+            // Measuring phase: a clear finger-off (searching) pauses the countdown;
+            // a returning good signal resumes it. Brief "weak" noise is tolerated.
+            if quality == .searching, !isPaused {
+                pauseMeasuring(at: currentT)
+            } else if quality == .good, isPaused {
+                resumeMeasuring(at: currentT)
+            }
         }
     }
 
     private func beginMeasuring(at t: Double) {
-        measureStartT = t
         isMeasuring = true
+        isMeasuringInternal = true
+        isPaused = false
+        accumulatedActive = 0
+        activeSegmentStart = t
+        measurementSamples.removeAll()
         secondsRemaining = Int(duration)
-        // Keep only the samples from the lock point onward for the final computation.
-        samples = samples.filter { $0.t >= t }
+    }
+
+    private func pauseMeasuring(at t: Double) {
+        if let segStart = activeSegmentStart {
+            accumulatedActive += t - segStart
+        }
+        activeSegmentStart = nil
+        isPaused = true
+    }
+
+    private func resumeMeasuring(at t: Double) {
+        activeSegmentStart = t
+        isPaused = false
     }
 
     private func finish() {
@@ -332,9 +383,13 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
         torchTimer?.invalidate()
         exposureLockWorkItem?.cancel()
         isRunning = false
+        isMeasuring = false
         stopSessionAndTorch()
 
-        let result = HeartRateSignalProcessor.computeBPM(from: samples)
+        // Prefer the accumulated clean measurement samples; fall back to the rolling
+        // buffer for the simulator path (which streams straight into samples).
+        let source = measurementSamples.count > 60 ? measurementSamples : samples
+        let result = HeartRateSignalProcessor.computeBPM(from: source)
         onFinished?(result?.bpm, result?.hrvMs)
     }
 
@@ -374,10 +429,18 @@ enum HeartRateSignalProcessor {
         let working = settled.count > 60 ? settled : samples
         let times = working.map { $0.t }
 
-        // Estimate sample rate from timestamps (frame duration is pinned to ~30fps).
-        let span = times.last! - times.first!
-        guard span > 5 else { return nil }
-        let fs = Double(working.count - 1) / span
+        // Estimate the sample rate from the MEDIAN frame interval rather than the
+        // total span, so a pause gap (finger briefly off) doesn't skew fs downward.
+        var deltas: [Double] = []
+        for i in 1..<times.count {
+            let d = times[i] - times[i - 1]
+            if d > 0 && d < 0.4 { deltas.append(d) } // ignore pause gaps
+        }
+        guard deltas.count > 30 else { return nil }
+        deltas.sort()
+        let medianDt = deltas[deltas.count / 2]
+        guard medianDt > 0 else { return nil }
+        let fs = 1.0 / medianDt
         guard fs > 5 else { return nil }
 
         let red = analyzeChannel(values: working.map { $0.red }, fs: fs)

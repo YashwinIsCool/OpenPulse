@@ -1,4 +1,6 @@
 import AVFoundation
+import AudioToolbox
+import UIKit
 import Combine
 
 final class HeartSoundRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
@@ -114,7 +116,18 @@ final class HeartSoundRecorder: NSObject, ObservableObject, AVAudioRecorderDeleg
         timer?.invalidate()
         recorder?.stop()
         try? AVAudioSession.sharedInstance().setActive(false)
+        notifyComplete()
         let url = currentFileURL ?? FileManager.default.temporaryDirectory.appendingPathComponent("heartsound-fallback.m4a")
         onFinished?(url)
+    }
+
+    /// Buzzes the phone so the user knows the 30 seconds is up — they can't see the
+    /// screen while it's held against their chest. Fires both the Taptic success
+    /// pattern and the classic vibration motor for a clearly noticeable cue.
+    private func notifyComplete() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(.success)
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
     }
 }

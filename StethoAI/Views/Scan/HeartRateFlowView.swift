@@ -42,6 +42,10 @@ struct HeartRateFlowView: View {
                 )
             }
         }
+        // Keep the screen awake for the whole scan — the phone must not auto-lock
+        // mid-measurement.
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
     }
 
     private func startRecording() {

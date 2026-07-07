@@ -38,6 +38,10 @@ struct HeartSoundFlowView: View {
                 }
             }
         }
+        // Keep the screen awake for the whole scan — the phone is against the chest
+        // and must not auto-lock mid-recording.
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
     }
 
     private func startRecording() {

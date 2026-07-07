@@ -105,17 +105,25 @@ struct HeartRateRecordingView: View {
         VStack(spacing: Tokens.Spacing.sm) {
             Text("\(camera.secondsRemaining)")
                 .font(.system(size: 72, weight: .bold))
-                .foregroundStyle(Tokens.Colors.primaryRed)
+                .foregroundStyle(camera.isPaused ? Tokens.Colors.warningAmber : Tokens.Colors.primaryRed)
                 .monospacedDigit()
 
             Text("seconds remaining")
                 .font(Tokens.Fonts.body)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
 
-            Label("Reading your pulse", systemImage: "heart.fill")
-                .font(Tokens.Fonts.caption)
-                .foregroundStyle(Tokens.Colors.successGreen)
-                .padding(.top, Tokens.Spacing.xs)
+            if camera.isPaused {
+                Label("Paused — put your finger back on the lens", systemImage: "pause.circle.fill")
+                    .font(Tokens.Fonts.caption)
+                    .foregroundStyle(Tokens.Colors.warningAmber)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, Tokens.Spacing.xs)
+            } else {
+                Label("Reading your pulse — hold still", systemImage: "heart.fill")
+                    .font(Tokens.Fonts.caption)
+                    .foregroundStyle(Tokens.Colors.successGreen)
+                    .padding(.top, Tokens.Spacing.xs)
+            }
         }
     }
 }
