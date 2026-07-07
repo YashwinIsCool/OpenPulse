@@ -9,20 +9,36 @@ import Combine
 /// On the simulator (no camera device available) it falls back to a synthetic
 /// ~72bpm signal fed through the exact same processing pipeline, so the full
 /// recording → analysis → result flow can still be exercised and screenshotted.
+/// Live guidance state shown to the user while they position their finger.
+enum PPGSignalQuality {
+    case searching   // no finger detected on the lens yet
+    case weak        // finger present, but the pulse isn't clean enough
+    case good        // clean pulse detected — safe to hold and measure
+}
+
 final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     @Published var waveform: [Double] = []
     @Published var isRunning = false
     @Published var secondsRemaining: Int = 30
     @Published var cameraAvailable = true
+    /// Live signal-quality feedback used before the timed measurement begins.
+    @Published var signalQuality: PPGSignalQuality = .searching
+    /// True once a good signal has locked and the 30-second countdown is running.
+    @Published var isMeasuring = false
 
     /// Called once when the 30-second window completes. `bpm` is nil if a clear signal couldn't be extracted.
     var onFinished: ((_ bpm: Int?, _ hrvMs: Double?) -> Void)?
 
     private let duration: Double = 30
+    /// How long a good signal must persist before we lock and start measuring.
+    private let lockConfirmSeconds: Double = 1.2
     private let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "com.stethoai.ppg.session")
     private var samples: [(t: Double, green: Double, red: Double)] = []
     private var startTime: CFAbsoluteTime = 0
+    private var measureStartT: Double?      // sample-time at which measuring began
+    private var goodSince: Double?          // sample-time the signal first became good
+    private var lastQualityEvalT: Double = 0
     private var displayTimer: Timer?
     private var simulatorTimer: Timer?
     private var torchTimer: Timer?
@@ -34,6 +50,11 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
     func start() {
         finished = false
         exposureLocked = false
+        isMeasuring = false
+        signalQuality = .searching
+        measureStartT = nil
+        goodSince = nil
+        lastQualityEvalT = 0
         samples.removeAll()
         waveform.removeAll()
         secondsRemaining = Int(duration)
@@ -178,7 +199,12 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
     }
 
     private func tick() {
-        let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+        // The countdown only runs once we've locked a good signal and started measuring.
+        guard let measureStartT else {
+            secondsRemaining = Int(duration)
+            return
+        }
+        let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) - measureStartT
         secondsRemaining = max(0, Int(duration) - Int(elapsed))
         if elapsed >= duration {
             finish()
@@ -186,6 +212,11 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
     }
 
     private func startSimulatorFallback() {
+        // No real finger/pulse to lock onto, so bypass the quality gate and measure
+        // immediately with a synthetic ~72bpm signal.
+        signalQuality = .good
+        isMeasuring = true
+        measureStartT = 0
         let simulatedBPM = 72.0
         let freq = simulatedBPM / 60.0
         simulatorTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
@@ -245,6 +276,52 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
         } else {
             waveform = recent.map { _ in 0.5 }
         }
+
+        updateSignalQualityAndLock(currentT: t)
+    }
+
+    /// Evaluates the last few seconds of signal, updates the live quality state, and
+    /// starts the timed measurement once a good pulse has held steadily.
+    private func updateSignalQualityAndLock(currentT: Double) {
+        // Once measuring has begun, we stop re-locking — just keep counting down.
+        guard measureStartT == nil else { return }
+        // Throttle the (relatively heavy) analysis to a few times per second.
+        guard currentT - lastQualityEvalT >= 0.25 else { return }
+        lastQualityEvalT = currentT
+
+        // Need a couple seconds of data (and, for the camera path, exposure locked)
+        // before quality can be judged.
+        let windowStart = currentT - 4.0
+        let window = samples.filter { $0.t >= windowStart }
+        guard window.count >= 30 else { signalQuality = .searching; return }
+
+        let span = window.last!.t - window.first!.t
+        guard span > 1.5 else { return }
+        let fs = Double(window.count - 1) / span
+
+        let quality = HeartRateSignalProcessor.assessQuality(
+            red: window.map { $0.red },
+            green: window.map { $0.green },
+            fs: fs
+        )
+
+        signalQuality = quality
+        if quality == .good {
+            if goodSince == nil { goodSince = currentT }
+            if let since = goodSince, currentT - since >= lockConfirmSeconds {
+                beginMeasuring(at: currentT)
+            }
+        } else {
+            goodSince = nil
+        }
+    }
+
+    private func beginMeasuring(at t: Double) {
+        measureStartT = t
+        isMeasuring = true
+        secondsRemaining = Int(duration)
+        // Keep only the samples from the lock point onward for the final computation.
+        samples = samples.filter { $0.t >= t }
     }
 
     private func finish() {
@@ -319,30 +396,71 @@ enum HeartRateSignalProcessor {
         return (best.bpm, best.hrvMs)
     }
 
-    private static func analyzeChannel(values rawValues: [Double], fs: Double) -> (bpm: Int, quality: Double, hrvMs: Double?)? {
-        let n = rawValues.count
-        guard n > 60 else { return nil }
+    /// Live quality gate used before measurement starts. Returns `.searching` when
+    /// no finger covers the lens, `.weak` when the pulse is too noisy, `.good` when
+    /// a clean periodic signal is locked.
+    static func assessQuality(red: [Double], green: [Double], fs: Double) -> PPGSignalQuality {
+        guard !red.isEmpty, !green.isEmpty else { return .searching }
+        let redMean = red.reduce(0, +) / Double(red.count)
+        let greenMean = green.reduce(0, +) / Double(green.count)
 
-        // High-pass by subtracting a ~0.75s moving average to remove baseline wander,
-        // then zero-mean the result.
+        // A fingertip over the torch makes the red channel bright and dominant; an
+        // uncovered lens does not. This reliably distinguishes "no finger" from a
+        // present-but-noisy contact.
+        let fingerPresent = redMean > 55 && redMean > greenMean * 1.4
+        guard fingerPresent else { return .searching }
+
+        let qRed = bestAutocorrelation(detrendZeroMean(red, fs: fs), fs: fs)?.corr ?? 0
+        let qGreen = bestAutocorrelation(detrendZeroMean(green, fs: fs), fs: fs)?.corr ?? 0
+        let quality = max(qRed, qGreen)
+
+        if quality >= 0.55 { return .good }
+        return .weak
+    }
+
+    private static func analyzeChannel(values rawValues: [Double], fs: Double) -> (bpm: Int, quality: Double, hrvMs: Double?)? {
+        guard rawValues.count > 60 else { return nil }
+        let x = detrendZeroMean(rawValues, fs: fs)
+        guard let best = bestAutocorrelation(x, fs: fs), best.corr > 0 else { return nil }
+
+        let minLag = max(1, Int((60.0 / maxBPM) * fs))
+        let maxLag = min(x.count - 1, Int((60.0 / minBPM) * fs))
+
+        // Parabolic interpolation around the best lag for sub-sample precision.
+        let refinedLag = interpolatedLag(x: x, n: x.count, bestLag: best.lag, minLag: minLag, maxLag: maxLag)
+        let period = refinedLag / fs
+        let bpm = Int((60.0 / period).rounded())
+        guard bpm >= Int(minBPM), bpm <= Int(maxBPM) else { return nil }
+
+        let hrv = estimateHRV(signal: x, fs: fs, expectedPeriod: period)
+        return (bpm, best.corr, hrv)
+    }
+
+    /// High-pass via a ~0.75s centered moving average, then zero-mean.
+    private static func detrendZeroMean(_ values: [Double], fs: Double) -> [Double] {
+        let n = values.count
+        guard n > 0 else { return [] }
         let window = max(3, Int(fs * 0.75))
         var detrended = [Double](repeating: 0, count: n)
-        // Centered moving-average high-pass filter.
         for i in 0..<n {
             let lo = max(0, i - window)
             let hi = min(n - 1, i + window)
             var s = 0.0
-            for j in lo...hi { s += rawValues[j] }
+            for j in lo...hi { s += values[j] }
             let avg = s / Double(hi - lo + 1)
-            detrended[i] = rawValues[i] - avg
+            detrended[i] = values[i] - avg
         }
-
         let mean = detrended.reduce(0, +) / Double(n)
-        var x = detrended.map { $0 - mean }
+        return detrended.map { $0 - mean }
+    }
+
+    /// Normalized autocorrelation search over the physiological lag range.
+    private static func bestAutocorrelation(_ x: [Double], fs: Double) -> (lag: Int, corr: Double)? {
+        let n = x.count
+        guard n > 30 else { return nil }
         let energy = x.reduce(0) { $0 + $1 * $1 }
         guard energy > 0 else { return nil }
 
-        // Autocorrelation search over lags in the physiological range.
         let minLag = max(1, Int((60.0 / maxBPM) * fs))
         let maxLag = min(n - 1, Int((60.0 / minBPM) * fs))
         guard maxLag > minLag else { return nil }
@@ -350,13 +468,9 @@ enum HeartRateSignalProcessor {
         var bestLag = minLag
         var bestCorr = -1.0
         for lag in minLag...maxLag {
-            var num = 0.0
-            var normA = 0.0
-            var normB = 0.0
-            var i = 0
+            var num = 0.0, normA = 0.0, normB = 0.0, i = 0
             while i + lag < n {
-                let a = x[i]
-                let b = x[i + lag]
+                let a = x[i], b = x[i + lag]
                 num += a * b
                 normA += a * a
                 normB += b * b
@@ -370,17 +484,7 @@ enum HeartRateSignalProcessor {
                 bestLag = lag
             }
         }
-
-        guard bestCorr > 0 else { return nil }
-
-        // Parabolic interpolation around the best lag for sub-sample precision.
-        let refinedLag = interpolatedLag(x: x, n: n, bestLag: bestLag, minLag: minLag, maxLag: maxLag)
-        let period = refinedLag / fs
-        let bpm = Int((60.0 / period).rounded())
-        guard bpm >= Int(minBPM), bpm <= Int(maxBPM) else { return nil }
-
-        let hrv = estimateHRV(signal: x, fs: fs, expectedPeriod: period)
-        return (bpm, bestCorr, hrv)
+        return bestCorr > 0 ? (bestLag, bestCorr) : nil
     }
 
     private static func interpolatedLag(x: [Double], n: Int, bestLag: Int, minLag: Int, maxLag: Int) -> Double {
