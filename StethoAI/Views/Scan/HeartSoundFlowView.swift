@@ -31,6 +31,7 @@ struct HeartSoundFlowView: View {
                 if let result, let recordingURL {
                     HeartSoundResultView(
                         result: result,
+                        audioURL: recordingURL,
                         onSave: { saveAndFinish(result: result, url: recordingURL) },
                         onNewScan: { step = .instructions },
                         onDismiss: { dismiss() }
@@ -67,8 +68,11 @@ struct HeartSoundFlowView: View {
     }
 
     private func saveAndFinish(result: HeartSoundResult, url: URL) {
+        // Copy the temp recording into permanent storage so it survives and can be
+        // played back later; store the bare filename.
+        let storedName = HeartSoundStore.persist(tempURL: url) ?? url.lastPathComponent
         let recording = HeartSoundRecording(
-            fileURLString: url.absoluteString,
+            fileURLString: storedName,
             classification: result.classification,
             confidence: result.confidence,
             s1Clarity: result.s1Clarity,

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HeartSoundResultView: View {
     let result: HeartSoundResult
+    let audioURL: URL?
     let onSave: () -> Void
     let onNewScan: () -> Void
     let onDismiss: () -> Void
@@ -69,6 +70,8 @@ struct HeartSoundResultView: View {
                 .background(backgroundTint)
                 .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous))
 
+                HeartSoundPlayerView(url: audioURL)
+
                 Card {
                     VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
                         Text("Detailed breakdown")
@@ -97,8 +100,16 @@ struct HeartSoundResultView: View {
             .padding(Tokens.Spacing.lg)
         }
         .sheet(isPresented: $isSharePresented) {
-            ShareSheet(items: ["StethoAI heart sound result: \(result.classification.rawValue) (\(Int(result.confidence * 100))% confidence). Educational use only, not medical advice."])
+            ShareSheet(items: shareItems)
         }
+    }
+
+    private var shareItems: [Any] {
+        var items: [Any] = ["StethoAI heart sound recording (\(Int(result.confidence * 100))% signal confidence). Educational use only, not medical advice."]
+        if let audioURL, FileManager.default.fileExists(atPath: audioURL.path) {
+            items.append(audioURL)
+        }
+        return items
     }
 
     private var iconName: String {

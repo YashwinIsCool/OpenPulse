@@ -10,6 +10,7 @@ struct TrendsView: View {
     @Query(sort: \BreathingSession.timestamp, order: .reverse) private var breathingSessions: [BreathingSession]
 
     @State private var period: String = "30D"
+    @State private var selectedRecording: HeartSoundRecording?
     private let periods = ["7D", "30D", "90D", "1Y"]
 
     private var periodDays: Int {
@@ -179,11 +180,17 @@ struct TrendsView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Tokens.Spacing.md) {
                         ForEach(recordings) { recording in
-                            heartSoundTile(recording)
+                            Button { selectedRecording = recording } label: {
+                                heartSoundTile(recording)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
             }
+        }
+        .sheet(item: $selectedRecording) { recording in
+            HeartSoundDetailView(recording: recording)
         }
     }
 
@@ -195,6 +202,10 @@ struct TrendsView: View {
             Text(recording.timestamp.formatted(date: .abbreviated, time: .omitted))
                 .font(Tokens.Fonts.caption)
                 .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+            Label("Play", systemImage: "play.circle.fill")
+                .font(Tokens.Fonts.caption)
+                .foregroundStyle(Tokens.Colors.primaryRed)
+                .padding(.top, 2)
         }
         .padding(Tokens.Spacing.md)
         .frame(width: 140, alignment: .leading)
@@ -218,5 +229,57 @@ struct TrendsView: View {
         guard !readings.isEmpty else { return nil }
         let sum = readings.reduce(0) { $0 + $1.bpm }
         return Int((Double(sum) / Double(readings.count)).rounded())
+    }
+}
+
+/// Detail sheet for a past heart-sound recording: listen back and share the audio.
+private struct HeartSoundDetailView: View {
+    let recording: HeartSoundRecording
+    @Environment(\.dismiss) private var dismiss
+    @State private var isSharePresented = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Tokens.Spacing.lg) {
+                    VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
+                        Text(recording.timestamp.formatted(date: .complete, time: .shortened))
+                            .font(Tokens.Fonts.sectionHeading)
+                            .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                        Text("Recorded heart sound")
+                            .font(Tokens.Fonts.caption)
+                            .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+                    }
+
+                    HeartSoundPlayerView(url: recording.fileURL)
+
+                    SecondaryButton(title: "Share with Doctor", icon: "square.and.arrow.up") {
+                        isSharePresented = true
+                    }
+
+                    DisclaimerFooter(text: "Educational use only · Not medical advice.")
+                }
+                .padding(Tokens.Spacing.lg)
+            }
+            .background(Tokens.Colors.adaptiveBackground)
+            .navigationTitle("Heart sound")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .sheet(isPresented: $isSharePresented) {
+            ShareSheet(items: shareItems)
+        }
+    }
+
+    private var shareItems: [Any] {
+        var items: [Any] = ["StethoAI heart sound recording from \(recording.timestamp.formatted(date: .abbreviated, time: .shortened)). Educational use only, not medical advice."]
+        if let url = recording.fileURL, FileManager.default.fileExists(atPath: url.path) {
+            items.append(url)
+        }
+        return items
     }
 }

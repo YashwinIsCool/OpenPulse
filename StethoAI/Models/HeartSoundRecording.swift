@@ -20,7 +20,17 @@ final class HeartSoundRecording {
     var s4Detected: Double
     var murmurLikelihood: Double
 
-    var fileURL: URL? { URL(string: fileURLString) }
+    /// Recordings are stored as a bare filename resolved against the permanent
+    /// HeartSoundStore directory. Legacy absolute/file URLs are still tolerated.
+    var fileURL: URL? {
+        if fileURLString.hasPrefix("file:") {
+            return URL(string: fileURLString)
+        }
+        if fileURLString.hasPrefix("/") {
+            return URL(fileURLWithPath: fileURLString)
+        }
+        return HeartSoundStore.url(for: fileURLString)
+    }
 
     var classification: HeartSoundClassification {
         get { HeartSoundClassification(rawValue: classificationRaw) ?? .normal }
