@@ -78,6 +78,7 @@ struct HeartSoundFlowView: View {
             murmurLikelihood: result.murmurLikelihood
         )
         modelContext.insert(recording)
+        StreakManager.updateStreakIfDayComplete(context: modelContext, user: user)
         dismiss()
     }
 }

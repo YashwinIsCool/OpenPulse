@@ -71,7 +71,8 @@ struct HeartRateFlowView: View {
         let category = HeartRateCategory.categorize(bpm: resultBPM)
         let reading = HeartRateReading(bpm: resultBPM, hrvMs: resultHRV, category: category, source: .auto)
         modelContext.insert(reading)
-        StreakManager.recordCheckIn(for: user)
+        // Streak only advances once the whole daily plan is done.
+        StreakManager.updateStreakIfDayComplete(context: modelContext, user: user)
         NotificationManager.shared.cancelStreakProtection()
         dismiss()
     }

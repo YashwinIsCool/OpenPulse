@@ -144,6 +144,7 @@ struct BreathingDetailView: View {
         guard !isFinished else { return }
         isFinished = true
         modelContext.insert(BreathingSession(exerciseType: exerciseType, duration: elapsed))
+        StreakManager.updateStreakIfDayComplete(context: modelContext, user: user)
     }
 
     private func timeString(_ seconds: Int) -> String {

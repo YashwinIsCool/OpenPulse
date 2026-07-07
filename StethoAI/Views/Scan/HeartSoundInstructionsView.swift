@@ -42,6 +42,12 @@ struct HeartSoundInstructionsView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Tokens.Spacing.xxl)
 
+                Label("Your phone will buzz when the 30 seconds is up, so you don't need to watch the screen.", systemImage: "iphone.radiowaves.left.and.right")
+                    .font(Tokens.Fonts.body)
+                    .foregroundStyle(Tokens.Colors.primaryRed)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Tokens.Spacing.xxl)
+
                 Text("Tip: for clearest results, use in a quiet room.")
                     .font(Tokens.Fonts.caption)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)

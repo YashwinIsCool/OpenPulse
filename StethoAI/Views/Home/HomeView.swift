@@ -41,6 +41,10 @@ struct HomeView: View {
         Calendar.current.component(.weekday, from: .now) == user.heartSoundWeekday
     }
 
+    private var allTasksDone: Bool {
+        todayReading != nil && didLogStressToday && didBreatheToday && (!isHeartSoundDay || didHeartSoundToday)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -73,16 +77,18 @@ struct HomeView: View {
 
     private var header: some View {
         HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(greeting)
-                    .font(Tokens.Fonts.sectionHeading)
+                    .font(.system(size: 28, weight: .bold))
+                    .tracking(Tokens.Tracking.pageTitle)
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                 Text(user.name.isEmpty ? "Welcome" : user.name)
-                    .font(Tokens.Fonts.body)
+                    .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
             }
             Spacer()
             StreakBadge(dayCount: user.streakCount)
+                .padding(.top, Tokens.Spacing.xs)
         }
         .padding(.top, Tokens.Spacing.sm)
     }
@@ -187,10 +193,15 @@ struct HomeView: View {
 
     private var todaysPlanSection: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-            Text("Today's plan")
-                .font(Tokens.Fonts.sectionHeading)
-                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Today's plan")
+                    .font(Tokens.Fonts.sectionHeading)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                Text(allTasksDone ? "All done — streak secured for today!" : "Finish everything to keep your streak going.")
+                    .font(Tokens.Fonts.caption)
+                    .foregroundStyle(allTasksDone ? Tokens.Colors.successGreen : Tokens.Colors.adaptiveTextTertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             planRow(title: "Morning heart rate check", subtitle: "30 seconds", done: todayReading != nil) {
                 activeSheet = .heartRate
@@ -237,6 +248,7 @@ struct HomeView: View {
         } else {
             modelContext.insert(DailyLog(stressLevel: level))
         }
+        StreakManager.updateStreakIfDayComplete(context: modelContext, user: user)
         activeSheet = nil
     }
 }

@@ -1,9 +1,43 @@
 import Foundation
+import SwiftData
 
 /// Owns the streak increment/reset rules. A streak increments once per calendar
-/// day on the first qualifying check-in, and resets to zero once a full day is
-/// skipped (checked both reactively on check-in and passively on launch).
+/// day — only when every task in the day's plan is complete — and resets to zero
+/// once a full day is skipped (checked both reactively and passively on launch).
 enum StreakManager {
+    /// The day's plan is complete when the heart rate check, stress log, and
+    /// breathing session are all done — plus the heart sound scan on its weekly day.
+    static func allDailyTasksComplete(context: ModelContext, user: User, asOf date: Date = .now) -> Bool {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return false }
+
+        func hasAny<T: PersistentModel>(_ type: T.Type, _ predicate: Predicate<T>) -> Bool {
+            var descriptor = FetchDescriptor<T>(predicate: predicate)
+            descriptor.fetchLimit = 1
+            return ((try? context.fetchCount(descriptor)) ?? 0) > 0
+        }
+
+        let hasHeartRate = hasAny(HeartRateReading.self, #Predicate { $0.timestamp >= start && $0.timestamp < end })
+        let hasStress = hasAny(DailyLog.self, #Predicate { $0.date >= start && $0.date < end && $0.stressLevel != nil })
+        let hasBreathing = hasAny(BreathingSession.self, #Predicate { $0.timestamp >= start && $0.timestamp < end })
+
+        let isHeartSoundDay = calendar.component(.weekday, from: date) == user.heartSoundWeekday
+        let hasHeartSound = !isHeartSoundDay || hasAny(HeartSoundRecording.self, #Predicate { $0.timestamp >= start && $0.timestamp < end })
+
+        return hasHeartRate && hasStress && hasBreathing && hasHeartSound
+    }
+
+    /// Call after any daily task completes: bumps the streak only once the full
+    /// plan is done for the day. Returns true if this call completed the day.
+    @discardableResult
+    static func updateStreakIfDayComplete(context: ModelContext, user: User, asOf date: Date = .now) -> Bool {
+        guard !hasCheckedInToday(for: user, asOf: date) else { return false }
+        guard allDailyTasksComplete(context: context, user: user, asOf: date) else { return false }
+        recordCheckIn(for: user, at: date)
+        return true
+    }
+
     static func recordCheckIn(for user: User, at date: Date = .now) {
         let calendar = Calendar.current
         if let last = user.lastActiveDate {
