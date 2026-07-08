@@ -196,9 +196,12 @@ struct TrendsView: View {
 
     private func heartSoundTile(_ recording: HeartSoundRecording) -> some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
-            Text(recording.classification.rawValue)
+            Image(systemName: "waveform.path.ecg")
+                .font(.system(size: 20))
+                .foregroundStyle(Tokens.Colors.primaryRed)
+            Text("Heart sound")
                 .font(Tokens.Fonts.cardTitle)
-                .foregroundStyle(classificationColor(recording.classification))
+                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
             Text(recording.timestamp.formatted(date: .abbreviated, time: .omitted))
                 .font(Tokens.Fonts.caption)
                 .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
@@ -215,14 +218,6 @@ struct TrendsView: View {
             RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous)
                 .stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1)
         )
-    }
-
-    private func classificationColor(_ classification: HeartSoundClassification) -> Color {
-        switch classification {
-        case .normal: return Tokens.Colors.successGreen
-        case .possibleMurmur: return Tokens.Colors.warningAmber
-        case .abnormal: return Tokens.Colors.dangerDark
-        }
     }
 
     private func average(of readings: [HeartRateReading]) -> Int? {

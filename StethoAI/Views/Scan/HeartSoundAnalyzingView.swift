@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HeartSoundAnalyzingView: View {
-    private let steps = ["Filtering noise", "Extracting features", "Running AI analysis", "Preparing report"]
+    private let steps = ["Processing audio", "Reducing background noise", "Saving your recording", "Preparing playback"]
     @State private var completedCount = 0
     private let timer = Timer.publish(every: 0.6, on: .main, in: .common).autoconnect()
 

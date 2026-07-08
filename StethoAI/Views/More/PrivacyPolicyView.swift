@@ -16,7 +16,7 @@ struct PrivacyPolicyView: View {
 
                 group(
                     title: "Not a substitute for clinical care",
-                    body: "Results from heart rate checks and heart sound scans should never replace evaluation by a qualified healthcare provider. Always consult a doctor about any health concerns, especially if the app flags a possible murmur or abnormal result."
+                    body: "StethoAI does not analyze or diagnose your heart sounds — it lets you record, save, and share them. Heart rate readings and recordings should never replace evaluation by a qualified healthcare provider. Always consult a doctor about any concerns regarding your heart."
                 )
 
                 group(

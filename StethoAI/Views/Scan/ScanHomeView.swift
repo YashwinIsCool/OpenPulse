@@ -93,7 +93,7 @@ struct ScanHomeView: View {
     }
 
     private var lastRecordingSubtitle: String {
-        guard let last = recordings.first else { return "Weekly deep check — 30 seconds" }
-        return "Last: \(last.classification.rawValue) · \(last.timestamp.formatted(.relative(presentation: .named)))"
+        guard let last = recordings.first else { return "Record & save your heartbeat — 30 seconds" }
+        return "Last recorded \(last.timestamp.formatted(.relative(presentation: .named)))"
     }
 }

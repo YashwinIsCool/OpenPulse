@@ -9,30 +9,6 @@ struct HeartSoundResultView: View {
 
     @State private var isSharePresented = false
 
-    private var color: Color {
-        switch result.classification {
-        case .normal: return Tokens.Colors.successGreen
-        case .possibleMurmur: return Tokens.Colors.warningAmber
-        case .abnormal: return Tokens.Colors.dangerDark
-        }
-    }
-
-    private var backgroundTint: Color {
-        switch result.classification {
-        case .normal: return Tokens.Colors.successBg
-        case .possibleMurmur: return Tokens.Colors.warningBg
-        case .abnormal: return Tokens.Colors.lightRedTint
-        }
-    }
-
-    private var headline: String {
-        switch result.classification {
-        case .normal: return "Your heart sounds normal. Great!"
-        case .possibleMurmur: return "We detected a possible extra sound. This is often harmless — consider getting evaluated by a doctor."
-        case .abnormal: return "This recording has features worth showing to a doctor."
-        }
-    }
-
     var body: some View {
         ScrollView {
             VStack(spacing: Tokens.Spacing.lg) {
@@ -48,45 +24,36 @@ struct HeartSoundResultView: View {
                 }
 
                 VStack(spacing: Tokens.Spacing.md) {
-                    Image(systemName: iconName)
+                    Image(systemName: "waveform.path.ecg")
                         .font(.system(size: 32))
-                        .foregroundStyle(color)
+                        .foregroundStyle(Tokens.Colors.primaryRed)
 
-                    Text(result.classification.rawValue)
+                    Text("Heart sound recorded")
                         .font(Tokens.Fonts.pageTitle)
-                        .foregroundStyle(color)
+                        .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
 
-                    Text(headline)
+                    Text("Listen back, keep it in your history, or share it with your doctor.")
                         .font(Tokens.Fonts.body)
                         .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                         .multilineTextAlignment(.center)
-
-                    Text("\(Int(result.confidence * 100))% confidence")
-                        .font(Tokens.Fonts.caption)
-                        .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                 }
                 .padding(Tokens.Spacing.lg)
                 .frame(maxWidth: .infinity)
-                .background(backgroundTint)
+                .background(Tokens.Colors.lightRedTint)
                 .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous))
 
                 HeartSoundPlayerView(url: audioURL)
 
                 Card {
-                    VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-                        Text("Detailed breakdown")
+                    VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
+                        Label("AI analysis coming soon", systemImage: "sparkles")
                             .font(Tokens.Fonts.cardTitle)
                             .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-
-                        breakdownBar(label: "S1 clarity", value: result.s1Clarity)
-                        breakdownBar(label: "S2 clarity", value: result.s2Clarity)
-                        breakdownBar(label: "S3/S4 detection", value: max(result.s3Detected, result.s4Detected))
-                        breakdownBar(label: "Murmur likelihood", value: result.murmurLikelihood)
+                        Text("StethoAI does not analyze or diagnose your heart sound. It helps you record, keep, and share it. Automatic analysis is in development and will arrive in a future update.")
+                            .font(Tokens.Fonts.body)
+                            .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                     }
-                }
-
-                if result.classification != .normal {
-                    ConsultDoctorCTA()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 VStack(spacing: Tokens.Spacing.sm) {
@@ -95,7 +62,7 @@ struct HeartSoundResultView: View {
                     SecondaryButton(title: "New Scan", icon: "arrow.clockwise", action: onNewScan)
                 }
 
-                DisclaimerFooter(text: "Educational use only · Not medical advice.")
+                DisclaimerFooter(text: "Educational use only · Not medical advice. If you have any concerns about your heart, talk to a healthcare provider.")
             }
             .padding(Tokens.Spacing.lg)
         }
@@ -105,50 +72,10 @@ struct HeartSoundResultView: View {
     }
 
     private var shareItems: [Any] {
-        var items: [Any] = ["StethoAI heart sound recording (\(Int(result.confidence * 100))% signal confidence). Educational use only, not medical advice."]
+        var items: [Any] = ["My heart sound recording from StethoAI. Educational use only, not medical advice."]
         if let audioURL, FileManager.default.fileExists(atPath: audioURL.path) {
             items.append(audioURL)
         }
         return items
     }
-
-    private var iconName: String {
-        switch result.classification {
-        case .normal: return "checkmark.seal.fill"
-        case .possibleMurmur: return "exclamationmark.triangle.fill"
-        case .abnormal: return "exclamationmark.octagon.fill"
-        }
-    }
-
-    private func breakdownBar(label: String, value: Double) -> some View {
-        VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
-            HStack {
-                Text(label)
-                    .font(Tokens.Fonts.body)
-                    .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
-                Spacer()
-                Text("\(Int(value * 100))%")
-                    .font(Tokens.Fonts.caption)
-                    .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-            }
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Tokens.Colors.adaptiveLightRedTint)
-                    Capsule().fill(Tokens.Colors.primaryRed)
-                        .frame(width: proxy.size.width * value)
-                }
-            }
-            .frame(height: 6)
-        }
-    }
-}
-
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
