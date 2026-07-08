@@ -35,6 +35,7 @@ struct HeartRateInstructionsView: View {
                         .padding(.horizontal, Tokens.Spacing.xxl)
 
                     VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
+                        tip(icon: "hand.raised.fingers.spread.fill", text: "Use your middle finger — it reaches the camera most comfortably.")
                         tip(icon: "hand.point.up.left.fill", text: "Rest your fingertip flat over the camera — gently, don't press hard.")
                         tip(icon: "lightbulb.fill", text: "Your fingertip should glow red once the flash turns on.")
                         tip(icon: "checkmark.circle.fill", text: "Hold still and wait — the timer starts once it finds a good signal.")
