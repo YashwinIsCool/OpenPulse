@@ -72,9 +72,18 @@ struct HeartRateInstructionsView: View {
     }
 }
 
-/// A small illustration of the back of a phone showing a fingertip resting over the
-/// rear camera lens and flash — the correct position for a PPG heart-rate reading.
+/// An animated illustration of the back of a phone: a fingertip slides in from the
+/// side, settles over the rear camera + flash, and glows red where the flash shines
+/// through it — then repeats. Shows users exactly where and how to place their finger.
 private struct FingerPlacementDiagram: View {
+    @State private var inPlace = false
+    private let timer = Timer.publish(every: 2.6, on: .main, in: .common).autoconnect()
+
+    // Finger rest position (over the camera) vs. off-screen start position.
+    private let targetX: CGFloat = -18
+    private let startX: CGFloat = 150
+    private let fingerY: CGFloat = -44
+
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -90,12 +99,17 @@ private struct FingerPlacementDiagram: View {
                         .padding(14)
                 }
 
-            // Fingertip resting over the camera cluster, glowing red where the
-            // flash shines through it.
-            fingertip
-                .offset(x: -18, y: -44)
+            // Fingertip that slides into place and glows.
+            fingertip(glow: inPlace ? 1 : 0)
+                .offset(x: inPlace ? targetX : startX, y: fingerY)
+                .animation(.easeInOut(duration: 1.1), value: inPlace)
         }
-        .frame(height: 250)
+        .frame(width: 240, height: 250)
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .onReceive(timer) { _ in inPlace.toggle() }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { inPlace = true }
+        }
     }
 
     private var cameraCluster: some View {
@@ -124,17 +138,21 @@ private struct FingerPlacementDiagram: View {
             .frame(width: 13, height: 13)
     }
 
-    private var fingertip: some View {
+    private func fingertip(glow: Double) -> some View {
         ZStack {
             Ellipse()
                 .fill(Color(red: 0.89, green: 0.63, blue: 0.52))
                 .frame(width: 84, height: 116)
+            // Red glow where the flash shines through the finger — fades in only
+            // once the finger has arrived over the camera.
             Ellipse()
                 .fill(Tokens.Colors.primaryRed.opacity(0.55))
                 .frame(width: 48, height: 64)
+                .opacity(glow)
             Ellipse()
                 .fill(Color(red: 0.98, green: 0.45, blue: 0.42))
                 .frame(width: 24, height: 34)
+                .opacity(glow)
         }
         .overlay(alignment: .bottom) {
             // Fingernail hint at the base of the finger.
@@ -143,5 +161,6 @@ private struct FingerPlacementDiagram: View {
                 .frame(width: 40, height: 22)
                 .offset(y: 8)
         }
+        .animation(.easeInOut(duration: 0.5).delay(glow > 0 ? 0.8 : 0), value: glow)
     }
 }
