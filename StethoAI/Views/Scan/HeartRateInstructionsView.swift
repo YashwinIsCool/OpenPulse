@@ -80,8 +80,9 @@ private struct FingerPlacementDiagram: View {
     private let timer = Timer.publish(every: 4.4, on: .main, in: .common).autoconnect()
 
     // Finger group rest position (fingertip over the camera) vs. off-screen start.
-    private let targetX: CGFloat = 24
-    private let startX: CGFloat = 210
+    // The finger enters from the left, tip pointing right toward the camera.
+    private let targetX: CGFloat = -66
+    private let startX: CGFloat = -220
     private let fingerY: CGFloat = -64
 
     var body: some View {
@@ -142,9 +143,9 @@ private struct FingerPlacementDiagram: View {
     private var skin: Color { Color(red: 0.90, green: 0.64, blue: 0.53) }
 
     private func finger(glow: Double) -> some View {
-        // A horizontal finger: rounded fingertip on the left, extending off to the
-        // right. Drawn as a capsule so the tip is naturally rounded.
-        ZStack(alignment: .leading) {
+        // A horizontal finger: rounded fingertip on the right, extending off to the
+        // left. Drawn as a capsule so the tip is naturally rounded.
+        ZStack(alignment: .trailing) {
             Capsule()
                 .fill(skin)
                 .frame(width: 132, height: 46)
@@ -156,7 +157,7 @@ private struct FingerPlacementDiagram: View {
                     Capsule()
                         .fill(Color(red: 0.72, green: 0.48, blue: 0.40).opacity(0.18))
                         .frame(width: 4, height: 34)
-                        .offset(x: 34)
+                        .offset(x: -34)
                 )
 
             // Red glow at the very tip, where the flash shines through the finger —
@@ -171,7 +172,7 @@ private struct FingerPlacementDiagram: View {
                     .frame(width: 18, height: 18)
             }
             .opacity(glow)
-            .offset(x: 6)
+            .offset(x: -6)
             .animation(.easeInOut(duration: 0.5).delay(glow > 0 ? 0.9 : 0), value: glow)
         }
     }
