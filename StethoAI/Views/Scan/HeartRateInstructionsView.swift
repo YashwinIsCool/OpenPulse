@@ -77,12 +77,12 @@ struct HeartRateInstructionsView: View {
 /// through it — then repeats. Shows users exactly where and how to place their finger.
 private struct FingerPlacementDiagram: View {
     @State private var inPlace = false
-    private let timer = Timer.publish(every: 2.6, on: .main, in: .common).autoconnect()
+    private let timer = Timer.publish(every: 4.4, on: .main, in: .common).autoconnect()
 
-    // Finger rest position (over the camera) vs. off-screen start position.
-    private let targetX: CGFloat = -18
-    private let startX: CGFloat = 150
-    private let fingerY: CGFloat = -44
+    // Finger group rest position (fingertip over the camera) vs. off-screen start.
+    private let targetX: CGFloat = 24
+    private let startX: CGFloat = 210
+    private let fingerY: CGFloat = -64
 
     var body: some View {
         ZStack {
@@ -99,16 +99,17 @@ private struct FingerPlacementDiagram: View {
                         .padding(14)
                 }
 
-            // Fingertip that slides into place and glows.
-            fingertip(glow: inPlace ? 1 : 0)
+            // A horizontal finger that slides in from the side; its tip covers the
+            // lens + flash (the lower lens stays visible) and glows once in place.
+            finger(glow: inPlace ? 1 : 0)
                 .offset(x: inPlace ? targetX : startX, y: fingerY)
-                .animation(.easeInOut(duration: 1.1), value: inPlace)
+                .animation(.easeInOut(duration: 1.7), value: inPlace)
         }
         .frame(width: 240, height: 250)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .onReceive(timer) { _ in inPlace.toggle() }
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { inPlace = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { inPlace = true }
         }
     }
 
@@ -138,29 +139,40 @@ private struct FingerPlacementDiagram: View {
             .frame(width: 13, height: 13)
     }
 
-    private func fingertip(glow: Double) -> some View {
-        ZStack {
-            Ellipse()
-                .fill(Color(red: 0.89, green: 0.63, blue: 0.52))
-                .frame(width: 84, height: 116)
-            // Red glow where the flash shines through the finger — fades in only
-            // once the finger has arrived over the camera.
-            Ellipse()
-                .fill(Tokens.Colors.primaryRed.opacity(0.55))
-                .frame(width: 48, height: 64)
-                .opacity(glow)
-            Ellipse()
-                .fill(Color(red: 0.98, green: 0.45, blue: 0.42))
-                .frame(width: 24, height: 34)
-                .opacity(glow)
+    private var skin: Color { Color(red: 0.90, green: 0.64, blue: 0.53) }
+
+    private func finger(glow: Double) -> some View {
+        // A horizontal finger: rounded fingertip on the left, extending off to the
+        // right. Drawn as a capsule so the tip is naturally rounded.
+        ZStack(alignment: .leading) {
+            Capsule()
+                .fill(skin)
+                .frame(width: 132, height: 46)
+                .overlay(
+                    Capsule().stroke(Color(red: 0.72, green: 0.48, blue: 0.40), lineWidth: 1)
+                )
+                // Subtle knuckle crease for a more finger-like look.
+                .overlay(
+                    Capsule()
+                        .fill(Color(red: 0.72, green: 0.48, blue: 0.40).opacity(0.18))
+                        .frame(width: 4, height: 34)
+                        .offset(x: 34)
+                )
+
+            // Red glow at the very tip, where the flash shines through the finger —
+            // fades in only once the finger has arrived over the camera. Small, so
+            // it reads as covering just the lens + flash, not the whole phone.
+            ZStack {
+                Circle()
+                    .fill(Tokens.Colors.primaryRed.opacity(0.55))
+                    .frame(width: 38, height: 38)
+                Circle()
+                    .fill(Color(red: 0.98, green: 0.45, blue: 0.42))
+                    .frame(width: 18, height: 18)
+            }
+            .opacity(glow)
+            .offset(x: 6)
+            .animation(.easeInOut(duration: 0.5).delay(glow > 0 ? 0.9 : 0), value: glow)
         }
-        .overlay(alignment: .bottom) {
-            // Fingernail hint at the base of the finger.
-            Ellipse()
-                .fill(Color(red: 0.95, green: 0.78, blue: 0.72))
-                .frame(width: 40, height: 22)
-                .offset(y: 8)
-        }
-        .animation(.easeInOut(duration: 0.5).delay(glow > 0 ? 0.8 : 0), value: glow)
     }
 }
