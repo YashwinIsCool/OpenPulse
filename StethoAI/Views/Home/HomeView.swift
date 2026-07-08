@@ -29,8 +29,23 @@ struct HomeView: View {
         breathingSessions.contains { Calendar.current.isDateInToday($0.timestamp) }
     }
 
-    private var didLogStressToday: Bool {
-        dailyLogs.contains { Calendar.current.isDateInToday($0.date) && $0.stressLevel != nil }
+    private var todayLog: DailyLog? {
+        dailyLogs.first { Calendar.current.isDateInToday($0.date) }
+    }
+
+    private var didCheckInToday: Bool {
+        todayLog?.hasCheckIn ?? false
+    }
+
+    private var todayCheckIn: CheckInData {
+        guard let log = todayLog else { return CheckInData() }
+        return CheckInData(
+            sleepHours: log.sleepHours,
+            caffeineCups: log.caffeineCups,
+            exerciseMinutes: log.exerciseMinutes,
+            stressLevel: log.stressLevel,
+            mood: log.mood
+        )
     }
 
     private var didHeartSoundToday: Bool {
@@ -42,7 +57,7 @@ struct HomeView: View {
     }
 
     private var allTasksDone: Bool {
-        todayReading != nil && didLogStressToday && didBreatheToday && (!isHeartSoundDay || didHeartSoundToday)
+        todayReading != nil && didCheckInToday && didBreatheToday && (!isHeartSoundDay || didHeartSoundToday)
     }
 
     var body: some View {
@@ -67,9 +82,9 @@ struct HomeView: View {
                 case .breathing:
                     NavigationStack { BreathingLibraryView(user: user) }
                 case .insights:
-                    NavigationStack { InsightView(user: user) }
+                    InsightView(user: user)
                 case .stressLog:
-                    StressLogSheet(onSave: saveStress)
+                    DailyCheckInSheet(initial: todayCheckIn, onSave: saveCheckIn)
                 }
             }
         }
@@ -206,7 +221,7 @@ struct HomeView: View {
             planRow(title: "Morning heart rate check", subtitle: "30 seconds", done: todayReading != nil) {
                 activeSheet = .heartRate
             }
-            planRow(title: "Log stress level", subtitle: "Quick 1-5 tap", done: didLogStressToday) {
+            planRow(title: "Daily check-in", subtitle: "Sleep, caffeine, stress & mood", done: didCheckInToday) {
                 activeSheet = .stressLog
             }
             planRow(title: "Evening breathing exercise", subtitle: "2-5 minutes", done: didBreatheToday) {
@@ -242,63 +257,18 @@ struct HomeView: View {
         .buttonStyle(.plain)
     }
 
-    private func saveStress(_ level: Int) {
-        if let existing = dailyLogs.first(where: { Calendar.current.isDateInToday($0.date) }) {
-            existing.stressLevel = level
-        } else {
-            modelContext.insert(DailyLog(stressLevel: level))
-        }
+    private func saveCheckIn(_ data: CheckInData) {
+        let log = dailyLogs.first(where: { Calendar.current.isDateInToday($0.date) }) ?? {
+            let new = DailyLog()
+            modelContext.insert(new)
+            return new
+        }()
+        log.sleepHours = data.sleepHours
+        log.caffeineCups = data.caffeineCups
+        log.exerciseMinutes = data.exerciseMinutes
+        log.stressLevel = data.stressLevel
+        log.mood = data.mood
         StreakManager.updateStreakIfDayComplete(context: modelContext, user: user)
         activeSheet = nil
-    }
-}
-
-private struct StressLogSheet: View {
-    let onSave: (Int) -> Void
-    @State private var selected: Int = 3
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: Tokens.Spacing.xxl) {
-                Text("How stressed do you feel right now?")
-                    .font(Tokens.Fonts.sectionHeading)
-                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, Tokens.Spacing.xxl)
-
-                HStack(spacing: Tokens.Spacing.md) {
-                    ForEach(1...5, id: \.self) { level in
-                        Button(action: { selected = level }) {
-                            Text("\(level)")
-                                .font(Tokens.Fonts.cardTitle)
-                                .frame(width: 44, height: 44)
-                                .foregroundStyle(selected == level ? .white : Tokens.Colors.primaryRed)
-                                .background(selected == level ? Tokens.Colors.primaryRed : Tokens.Colors.adaptiveSoftRedSurface)
-                                .clipShape(Circle())
-                        }
-                    }
-                }
-
-                HStack {
-                    Text("Calm").font(Tokens.Fonts.caption).foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-                    Spacer()
-                    Text("Stressed").font(Tokens.Fonts.caption).foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-                }
-                .padding(.horizontal, Tokens.Spacing.xxl)
-
-                Spacer()
-
-                PrimaryButton(title: "Save", action: { onSave(selected) })
-                    .padding(.horizontal, Tokens.Spacing.xl)
-                    .padding(.bottom, Tokens.Spacing.xl)
-            }
-            .background(Tokens.Colors.adaptiveBackground)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
-        }
     }
 }

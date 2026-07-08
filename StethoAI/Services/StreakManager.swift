@@ -19,13 +19,19 @@ enum StreakManager {
         }
 
         let hasHeartRate = hasAny(HeartRateReading.self, #Predicate { $0.timestamp >= start && $0.timestamp < end })
-        let hasStress = hasAny(DailyLog.self, #Predicate { $0.date >= start && $0.date < end && $0.stressLevel != nil })
         let hasBreathing = hasAny(BreathingSession.self, #Predicate { $0.timestamp >= start && $0.timestamp < end })
+
+        // Evaluate the check-in in Swift — the combined optional check is too complex
+        // for SwiftData's predicate type-checker.
+        let todaysLogs = (try? context.fetch(FetchDescriptor<DailyLog>(
+            predicate: #Predicate { $0.date >= start && $0.date < end }
+        ))) ?? []
+        let hasCheckIn = todaysLogs.contains { $0.hasCheckIn }
 
         let isHeartSoundDay = calendar.component(.weekday, from: date) == user.heartSoundWeekday
         let hasHeartSound = !isHeartSoundDay || hasAny(HeartSoundRecording.self, #Predicate { $0.timestamp >= start && $0.timestamp < end })
 
-        return hasHeartRate && hasStress && hasBreathing && hasHeartSound
+        return hasHeartRate && hasCheckIn && hasBreathing && hasHeartSound
     }
 
     /// Call after any daily task completes: bumps the streak only once the full
