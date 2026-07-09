@@ -4,6 +4,9 @@ import SwiftData
 struct BreathingDetailView: View {
     let user: User
     let exerciseType: BreathingExerciseType
+    /// When set (guided-plan mode), the completion screen shows a single "Continue"
+    /// that hands control back to the plan instead of the standalone options.
+    var onComplete: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -89,16 +92,20 @@ struct BreathingDetailView: View {
             Text("Nice work")
                 .font(Tokens.Fonts.pageTitle)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-            Text("Want to see the effect on your heart rate?")
+            Text(onComplete == nil ? "Want to see the effect on your heart rate?" : "Next, we'll check how your heart rate responded.")
                 .font(Tokens.Fonts.body)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 .multilineTextAlignment(.center)
             Spacer()
             VStack(spacing: Tokens.Spacing.sm) {
-                PrimaryButton(title: "Take a Heart Rate Reading", icon: "heart.fill") {
-                    isPresentingHeartRateCheck = true
+                if let onComplete {
+                    PrimaryButton(title: "Continue", icon: "arrow.right") { onComplete() }
+                } else {
+                    PrimaryButton(title: "Take a Heart Rate Reading", icon: "heart.fill") {
+                        isPresentingHeartRateCheck = true
+                    }
+                    SecondaryButton(title: "Done", action: { dismiss() })
                 }
-                SecondaryButton(title: "Done", action: { dismiss() })
             }
             .padding(.horizontal, Tokens.Spacing.xl)
             .padding(.bottom, Tokens.Spacing.xl)

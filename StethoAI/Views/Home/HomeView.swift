@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 private enum HomeSheet: Identifiable {
-    case heartRate, heartSound, breathing, insights, stressLog
+    case heartRate, heartSound, breathing, insights, stressLog, dailyPlan
     var id: Int { hashValue }
 }
 
@@ -68,6 +68,7 @@ struct HomeView: View {
                     heroSection
                     quickActionsGrid
                     todaysPlanSection
+                    startPlanButton
                 }
                 .padding(Tokens.Spacing.lg)
             }
@@ -85,6 +86,8 @@ struct HomeView: View {
                     InsightView(user: user)
                 case .stressLog:
                     DailyCheckInSheet(initial: todayCheckIn, onSave: saveCheckIn)
+                case .dailyPlan:
+                    DailyPlanFlowView(user: user)
                 }
             }
         }
@@ -204,6 +207,22 @@ struct HomeView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    private var startPlanButton: some View {
+        VStack(spacing: Tokens.Spacing.xs) {
+            PrimaryButton(
+                title: allTasksDone ? "Run today's plan again" : "Start today's plan",
+                icon: allTasksDone ? "arrow.clockwise" : "play.fill"
+            ) {
+                activeSheet = .dailyPlan
+            }
+            Text("One guided flow — reading, check-in, breathing, and your results.")
+                .font(Tokens.Fonts.caption)
+                .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.top, Tokens.Spacing.sm)
     }
 
     private var todaysPlanSection: some View {

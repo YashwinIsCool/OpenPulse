@@ -10,6 +10,7 @@ final class DailyLog {
     var caffeineCups: Int?         // 0, 1, 2, 3 (3 = "3+")
     var exerciseMinutes: Int?      // 0, 15, 40, 75 (bucketed intensity)
     var mood: Int?                 // 1 (low) ... 5 (great)
+    var postPlanFeeling: Int?      // 1 (rough) ... 5 (great) — logged after the guided plan
     var notes: String
 
     init(
@@ -20,6 +21,7 @@ final class DailyLog {
         caffeineCups: Int? = nil,
         exerciseMinutes: Int? = nil,
         mood: Int? = nil,
+        postPlanFeeling: Int? = nil,
         notes: String = ""
     ) {
         self.date = date
@@ -29,6 +31,7 @@ final class DailyLog {
         self.caffeineCups = caffeineCups
         self.exerciseMinutes = exerciseMinutes
         self.mood = mood
+        self.postPlanFeeling = postPlanFeeling
         self.notes = notes
     }
 
