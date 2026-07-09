@@ -3,6 +3,7 @@ import SwiftUI
 struct HeartRateInstructionsView: View {
     let onStart: () -> Void
     let onCancel: () -> Void
+    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,24 +22,24 @@ struct HeartRateInstructionsView: View {
 
             ScrollView {
                 VStack(spacing: Tokens.Spacing.xl) {
-                    Text("Heart rate check")
+                    Text(loc.t("Heart rate check"))
                         .font(Tokens.Fonts.pageTitle)
                         .tracking(Tokens.Tracking.pageTitle)
                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
 
                     FingerPlacementDiagram()
 
-                    Text("Cover the rear camera **and** the flash with your fingertip, so no light leaks out.")
+                    Text(loc.t("Cover the rear camera and the flash with your fingertip, so no light leaks out."))
                         .font(Tokens.Fonts.body)
                         .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, Tokens.Spacing.xxl)
 
                     VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-                        tip(icon: "hand.raised.fingers.spread.fill", text: "Use your middle finger — it reaches the camera most comfortably.")
-                        tip(icon: "hand.point.up.left.fill", text: "Rest your fingertip flat over the camera — gently, don't press hard.")
-                        tip(icon: "lightbulb.fill", text: "Your fingertip should glow red once the flash turns on.")
-                        tip(icon: "checkmark.circle.fill", text: "Hold still and wait — the timer starts once it finds a good signal.")
+                        tip(icon: "hand.raised.fingers.spread.fill", text: loc.t("Use your middle finger — it reaches the camera most comfortably."))
+                        tip(icon: "hand.point.up.left.fill", text: loc.t("Rest your fingertip flat over the camera — gently, don't press hard."))
+                        tip(icon: "lightbulb.fill", text: loc.t("Your fingertip should glow red once the flash turns on."))
+                        tip(icon: "checkmark.circle.fill", text: loc.t("Hold still and wait — the timer starts once it finds a good signal."))
                     }
                     .padding(Tokens.Spacing.lg)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -53,7 +54,7 @@ struct HeartRateInstructionsView: View {
                 .padding(.vertical, Tokens.Spacing.xl)
             }
 
-            PrimaryButton(title: "Start", icon: "play.fill", action: onStart)
+            PrimaryButton(title: loc.t("Start"), icon: "play.fill", action: onStart)
                 .padding(.horizontal, Tokens.Spacing.xl)
                 .padding(.bottom, Tokens.Spacing.xl)
         }

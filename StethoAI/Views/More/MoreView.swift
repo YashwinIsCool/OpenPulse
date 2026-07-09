@@ -23,6 +23,7 @@ struct MoreView: View {
                     }
 
                     section(title: "Preferences") {
+                        navRow(icon: "globe", title: "Language") { LanguageSettingsView() }
                         navRow(icon: "bell.fill", title: "Notifications") { NotificationSettingsView() }
                     }
 

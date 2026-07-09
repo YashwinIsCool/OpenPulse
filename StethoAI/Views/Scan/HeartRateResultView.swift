@@ -7,6 +7,7 @@ struct HeartRateResultView: View {
     let onSave: () -> Void
 
     @State private var showCare = false
+    @ObservedObject private var loc = Localizer.shared
 
     private var category: HeartRateCategory { HeartRateCategory.categorize(bpm: bpm) }
 
@@ -55,7 +56,7 @@ struct HeartRateResultView: View {
                     .frame(maxWidth: 200)
             }
 
-            Text(category.plainGuidance)
+            Text(loc.t(category.plainGuidance))
                 .font(Tokens.Fonts.body)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 .multilineTextAlignment(.center)
@@ -65,11 +66,11 @@ struct HeartRateResultView: View {
 
             VStack(spacing: Tokens.Spacing.md) {
                 if category.isConcerning {
-                    SecondaryButton(title: "See where to get care", icon: "cross.case.fill") {
+                    SecondaryButton(title: loc.t("See where to get care"), icon: "cross.case.fill") {
                         showCare = true
                     }
                 }
-                PrimaryButton(title: "Save & Continue", icon: "checkmark", action: onSave)
+                PrimaryButton(title: loc.t("Save & Continue"), icon: "checkmark", action: onSave)
                 DisclaimerFooter()
             }
             .padding(.horizontal, Tokens.Spacing.xl)

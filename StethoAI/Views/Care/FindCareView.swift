@@ -7,6 +7,7 @@ struct FindCareView: View {
     /// Optional reading context to show a calm, specific message at the top.
     var category: HeartRateCategory? = nil
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var loc = Localizer.shared
 
     private let resources = CareResources.forDeployment
 
@@ -26,11 +27,11 @@ struct FindCareView: View {
                 .padding(Tokens.Spacing.lg)
             }
             .background(Tokens.Colors.adaptiveBackground)
-            .navigationTitle("Where to get care")
+            .navigationTitle(loc.t("Where to get care"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button(loc.t("Done")) { dismiss() }
                 }
             }
         }
@@ -42,11 +43,11 @@ struct FindCareView: View {
                 .font(.system(size: 34))
                 .foregroundStyle(Tokens.Colors.primaryRed)
 
-            Text(headline)
+            Text(loc.t(headline))
                 .font(Tokens.Fonts.sectionHeading)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
 
-            Text(subhead)
+            Text(loc.t(subhead))
                 .font(Tokens.Fonts.body)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
         }
@@ -77,12 +78,12 @@ struct FindCareView: View {
                         .frame(width: 32, height: 32)
                         .background(Tokens.Colors.adaptiveSoftRedSurface)
                         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                    Text(resource.title)
+                    Text(loc.t(resource.title))
                         .font(Tokens.Fonts.cardTitle)
                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                 }
 
-                Text(resource.detail)
+                Text(loc.t(resource.detail))
                     .font(Tokens.Fonts.body)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -102,7 +103,7 @@ struct FindCareView: View {
                     UIApplication.shared.open(url)
                 }
             } label: {
-                Label(resource.actionLabel ?? "Call", systemImage: "phone.fill")
+                Label(loc.t(resource.actionLabel ?? "Call"), systemImage: "phone.fill")
                     .font(Tokens.Fonts.body)
                     .foregroundStyle(Tokens.Colors.primaryRed)
             }
@@ -113,7 +114,7 @@ struct FindCareView: View {
                     UIApplication.shared.open(url)
                 }
             } label: {
-                Label(resource.actionLabel ?? "Learn more", systemImage: "arrow.up.right.square")
+                Label(loc.t(resource.actionLabel ?? "Learn more"), systemImage: "arrow.up.right.square")
                     .font(Tokens.Fonts.body)
                     .foregroundStyle(Tokens.Colors.primaryRed)
             }

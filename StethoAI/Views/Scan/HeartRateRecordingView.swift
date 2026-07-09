@@ -3,6 +3,7 @@ import SwiftUI
 struct HeartRateRecordingView: View {
     @ObservedObject var camera: PPGCameraManager
     let onCancel: () -> Void
+    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         VStack(spacing: Tokens.Spacing.xl) {
@@ -49,11 +50,11 @@ struct HeartRateRecordingView: View {
                     .symbolEffect(.pulse, options: .repeating, isActive: camera.signalQuality != .good)
             }
 
-            Text(statusTitle)
+            Text(loc.t(statusTitle))
                 .font(Tokens.Fonts.sectionHeading)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
 
-            Text(statusSubtitle)
+            Text(loc.t(statusSubtitle))
                 .font(Tokens.Fonts.body)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 .multilineTextAlignment(.center)
@@ -90,7 +91,7 @@ struct HeartRateRecordingView: View {
         switch camera.signalQuality {
         case .searching:
             return camera.cameraAvailable
-                ? "Cover the camera and flash fully with your fingertip."
+                ? "Cover the camera and the flash fully with your fingertip."
                 : "Preparing a simulated reading…"
         case .weak:
             return "Rest your finger flat and gently — don't press hard."
@@ -108,18 +109,18 @@ struct HeartRateRecordingView: View {
                 .foregroundStyle(camera.isPaused ? Tokens.Colors.warningAmber : Tokens.Colors.primaryRed)
                 .monospacedDigit()
 
-            Text("seconds remaining")
+            Text(loc.t("seconds remaining"))
                 .font(Tokens.Fonts.body)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
 
             if camera.isPaused {
-                Label("Paused — put your finger back on the lens", systemImage: "pause.circle.fill")
+                Label(loc.t("Paused — put your finger back on the lens"), systemImage: "pause.circle.fill")
                     .font(Tokens.Fonts.caption)
                     .foregroundStyle(Tokens.Colors.warningAmber)
                     .multilineTextAlignment(.center)
                     .padding(.top, Tokens.Spacing.xs)
             } else {
-                Label("Reading your pulse — hold still", systemImage: "heart.fill")
+                Label(loc.t("Reading your pulse — hold still"), systemImage: "heart.fill")
                     .font(Tokens.Fonts.caption)
                     .foregroundStyle(Tokens.Colors.successGreen)
                     .padding(.top, Tokens.Spacing.xs)
