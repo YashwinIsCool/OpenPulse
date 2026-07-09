@@ -20,6 +20,7 @@ struct DailyPlanFlowView: View {
         case hrResult(Stage)
         case hrFailed(Stage)
         case checkIn
+        case breathingSetup
         case breathing
         case results
     }
@@ -30,7 +31,12 @@ struct DailyPlanFlowView: View {
     @State private var pendingBPM: Int = 0
     @State private var pendingHRV: Double?
     @State private var breathingType: BreathingExerciseType = .fourSevenEight
+    @State private var breathingSeconds: Int = 60
     @State private var feeling: Int?
+
+    private let breathingOptions: [(label: String, seconds: Int)] = [
+        ("30 sec", 30), ("1 min", 60), ("2 min", 120), ("3 min", 180)
+    ]
 
     var body: some View {
         ZStack {
@@ -72,19 +78,72 @@ struct DailyPlanFlowView: View {
                 stepChrome(step: 2) {
                     DailyCheckInForm(initial: todayCheckIn, saveTitle: "Save & continue") { data in
                         saveCheckIn(data)
-                        phase = .breathing
+                        phase = .breathingSetup
                     }
                 }
+            case .breathingSetup:
+                stepChrome(step: 3) { breathingSetupView }
             case .breathing:
                 BreathingDetailView(user: user, exerciseType: breathingType, onComplete: {
                     phase = .hrInstructions(.after)
-                })
+                }, durationOverride: breathingSeconds)
             case .results:
                 resultsView
             }
         }
         .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
         .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+    }
+
+    // MARK: - Breathing setup
+
+    private var breathingSetupView: some View {
+        VStack(spacing: Tokens.Spacing.xl) {
+            Spacer()
+
+            Image(systemName: "wind")
+                .font(.system(size: 48))
+                .foregroundStyle(Tokens.Colors.primaryRed)
+
+            VStack(spacing: Tokens.Spacing.sm) {
+                Text("Breathing exercise")
+                    .font(Tokens.Fonts.pageTitle)
+                    .tracking(Tokens.Tracking.pageTitle)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                Text("How long would you like to breathe? A slow, calm exercise to settle your heart.")
+                    .font(Tokens.Fonts.body)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Tokens.Spacing.xxl)
+            }
+
+            HStack(spacing: Tokens.Spacing.sm) {
+                ForEach(breathingOptions, id: \.seconds) { option in
+                    let isSelected = breathingSeconds == option.seconds
+                    Text(option.label)
+                        .font(Tokens.Fonts.cardTitle)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Tokens.Spacing.md)
+                        .foregroundStyle(isSelected ? .white : Tokens.Colors.primaryRed)
+                        .background(isSelected ? Tokens.Colors.primaryRed : Tokens.Colors.adaptiveSoftRedSurface)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.12)) { breathingSeconds = option.seconds }
+                        }
+                }
+            }
+            .padding(.horizontal, Tokens.Spacing.lg)
+
+            Spacer()
+            Spacer()
+
+            PrimaryButton(title: "Start breathing", icon: "play.fill") {
+                phase = .breathing
+            }
+            .padding(.horizontal, Tokens.Spacing.xl)
+            .padding(.bottom, Tokens.Spacing.xl)
+        }
     }
 
     // MARK: - Results

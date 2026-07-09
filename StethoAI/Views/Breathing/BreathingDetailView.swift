@@ -7,6 +7,10 @@ struct BreathingDetailView: View {
     /// When set (guided-plan mode), the completion screen shows a single "Continue"
     /// that hands control back to the plan instead of the standalone options.
     var onComplete: (() -> Void)? = nil
+    /// Optional total length override (seconds). Defaults to the exercise's own length.
+    var durationOverride: Int? = nil
+
+    private var totalDuration: Int { durationOverride ?? exerciseType.durationSeconds }
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -24,7 +28,7 @@ struct BreathingDetailView: View {
     }
 
     private var secondsRemainingTotal: Int {
-        max(0, exerciseType.durationSeconds - elapsed)
+        max(0, totalDuration - elapsed)
     }
 
     var body: some View {
@@ -119,7 +123,7 @@ struct BreathingDetailView: View {
         guard !isFinished else { return }
         elapsed += 1
         updatePhase(force: false)
-        if elapsed >= exerciseType.durationSeconds {
+        if elapsed >= totalDuration {
             finish()
         }
     }
