@@ -142,8 +142,33 @@
     .split { grid-template-columns: 1fr; }
     .nav-cta { display: none; }
   }
+  /* --- motion --- */
+  @keyframes riseIn { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+  .hero .pill { animation: riseIn .7s .05s both; }
+  .hero h1 { animation: riseIn .85s .18s both; }
+  .hero .sub { animation: riseIn .85s .32s both; }
+  .hero .cta-row { animation: riseIn .85s .46s both; }
+  .hero .micro { animation: riseIn .85s .58s both; }
+
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .75s cubic-bezier(.2,.7,.2,1), transform .75s cubic-bezier(.2,.7,.2,1); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  .card { transition: transform .22s ease, box-shadow .22s ease, opacity .75s cubic-bezier(.2,.7,.2,1); }
+  .card:hover { transform: translateY(-5px); box-shadow: 0 6px 16px rgba(26,19,21,.08), 0 22px 44px rgba(26,19,21,.12); }
+  @media (prefers-color-scheme: dark) { .card:hover { box-shadow: 0 12px 34px rgba(0,0,0,.55); } }
+  .card .ico { transition: transform .22s ease; }
+  .card:hover .ico { transform: scale(1.08) rotate(-3deg); }
+
+  .phone { transition: transform .3s ease; will-change: transform; }
+  .beatdot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #fff; margin-right: 7px; vertical-align: middle; animation: hb 1.5s ease-in-out infinite; }
+  @keyframes hb { 0%,100% { transform: scale(1); opacity: .85; } 12% { transform: scale(1.9); opacity: 1; } 26% { transform: scale(1); } 40% { transform: scale(1.5); opacity: .95; } 54% { transform: scale(1); } }
+  .bpm { transition: opacity .25s ease; }
+
   @media (prefers-reduced-motion: reduce) {
-    .dot { animation: none; }
+    .dot, .beatdot { animation: none; }
+    .hero .pill, .hero h1, .hero .sub, .hero .cta-row, .hero .micro { animation: none; }
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .card:hover { transform: none; }
   }
 </style>
 
@@ -233,7 +258,7 @@
               <div class="streak">12-day streak</div>
             </div>
             <div class="herocard">
-              <div class="lbl">TODAY'S HEART CHECK</div>
+              <div class="lbl"><span class="beatdot"></span>TODAY'S HEART CHECK</div>
               <div class="bpm">72 <small>bpm</small></div>
               <span class="tag">RESTING · NORMAL</span>
             </div>
@@ -334,5 +359,38 @@
     resize();
     window.addEventListener("resize", resize);
     if (reduce) { draw(0); } else { loop(); }
+  })();
+
+  // Scroll-triggered reveals with a gentle per-row stagger.
+  (function () {
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var els = document.querySelectorAll(".sec-head, .cards .card, .how > div, .split .note, .final");
+    if (reduce || !("IntersectionObserver" in window)) {
+      els.forEach(function (e) { e.classList.add("in"); });
+      return;
+    }
+    els.forEach(function (e) { e.classList.add("reveal"); });
+    document.querySelectorAll(".cards .card").forEach(function (c, i) { c.style.transitionDelay = (i * 0.09) + "s"; });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.15, rootMargin: "0px 0px -8% 0px" });
+    els.forEach(function (e) { io.observe(e); });
+  })();
+
+  // Make the phone mockup feel live: the bpm gently drifts like a real reading.
+  (function () {
+    var el = document.querySelector(".herocard .bpm");
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var vals = [72, 71, 73, 72, 70, 72, 74, 71], i = 0;
+    setInterval(function () {
+      i = (i + 1) % vals.length;
+      el.style.opacity = "0.35";
+      setTimeout(function () {
+        el.firstChild.nodeValue = vals[i] + " ";
+        el.style.opacity = "1";
+      }, 220);
+    }, 2000);
   })();
 </script>
