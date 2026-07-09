@@ -6,6 +6,8 @@ struct HeartRateResultView: View {
     let hrvMs: Double?
     let onSave: () -> Void
 
+    @State private var showCare = false
+
     private var category: HeartRateCategory { HeartRateCategory.categorize(bpm: bpm) }
 
     private var badgeColor: Color {
@@ -53,14 +55,28 @@ struct HeartRateResultView: View {
                     .frame(maxWidth: 200)
             }
 
+            Text(category.plainGuidance)
+                .font(Tokens.Fonts.body)
+                .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Tokens.Spacing.xxl)
+
             Spacer()
 
             VStack(spacing: Tokens.Spacing.md) {
+                if category.isConcerning {
+                    SecondaryButton(title: "See where to get care", icon: "cross.case.fill") {
+                        showCare = true
+                    }
+                }
                 PrimaryButton(title: "Save & Continue", icon: "checkmark", action: onSave)
                 DisclaimerFooter()
             }
             .padding(.horizontal, Tokens.Spacing.xl)
             .padding(.bottom, Tokens.Spacing.xl)
+        }
+        .sheet(isPresented: $showCare) {
+            FindCareView(category: category)
         }
     }
 }

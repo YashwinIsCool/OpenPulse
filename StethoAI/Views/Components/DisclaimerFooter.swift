@@ -14,13 +14,17 @@ struct DisclaimerFooter: View {
     }
 }
 
-/// Shown when a result is flagged as possible-murmur or abnormal.
+/// Opens the pathway-to-care screen — real, local, low-cost routes to care rather
+/// than a generic "find a doctor" search.
 struct ConsultDoctorCTA: View {
+    @State private var showCare = false
+
     var body: some View {
-        SecondaryButton(title: "Find a Doctor", icon: "stethoscope") {
-            if let url = URL(string: "https://www.google.com/maps/search/cardiologist+near+me") {
-                UIApplication.shared.open(url)
-            }
+        SecondaryButton(title: "See where to get care", icon: "cross.case.fill") {
+            showCare = true
+        }
+        .sheet(isPresented: $showCare) {
+            FindCareView()
         }
     }
 }

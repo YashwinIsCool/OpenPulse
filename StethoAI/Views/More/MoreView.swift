@@ -6,6 +6,7 @@ struct MoreView: View {
     @ObservedObject private var settings = AppSettings.shared
     @State private var isSharePresented = false
     @State private var isFeedbackPresented = false
+    @State private var isCarePresented = false
 
     var body: some View {
         NavigationStack {
@@ -23,6 +24,10 @@ struct MoreView: View {
 
                     section(title: "Preferences") {
                         navRow(icon: "bell.fill", title: "Notifications") { NotificationSettingsView() }
+                    }
+
+                    section(title: "Get care") {
+                        actionRow(icon: "cross.case.fill", title: "Where to get care") { isCarePresented = true }
                     }
 
                     section(title: "Learn") {
@@ -83,6 +88,9 @@ struct MoreView: View {
             }
             .sheet(isPresented: $isFeedbackPresented) {
                 ShareSheet(items: ["StethoAI feedback: "])
+            }
+            .sheet(isPresented: $isCarePresented) {
+                FindCareView()
             }
         }
     }
