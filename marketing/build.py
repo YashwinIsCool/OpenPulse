@@ -23,6 +23,8 @@ for token, filename in TOKENS.items():
     uri = "data:image/jpeg;base64," + base64.b64encode(data).decode()
     html = html.replace(token, uri)
 
-out = HERE / "landing.html"
-out.write_text(html)
-print(f"wrote {out} ({len(html)/1024:.0f} KB)")
+(HERE / "landing.html").write_text(html)
+dist = HERE / "dist"
+dist.mkdir(exist_ok=True)
+(dist / "index.html").write_text(html)
+print(f"wrote landing.html and dist/index.html ({len(html)/1024:.0f} KB)")

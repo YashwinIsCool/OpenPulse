@@ -141,15 +141,31 @@
     .phone-stage { order: -1; }
     .split { grid-template-columns: 1fr; }
     .nav-cta { display: none; }
-    .gallery { padding-left: 16px; padding-right: 16px; }
+    .tour { gap: 64px; }
+    .frow { grid-template-columns: 1fr; gap: 26px; justify-items: center; text-align: center; }
+    .frow.rev .shotcol { order: 0; }
+    .frow .txt { max-width: 34ch; }
+    .frow .shotcol { transform: translateY(36px); }
+    .frow.rev .shotcol { transform: translateY(36px); }
+    .shot { width: 232px; }
   }
   /* real-screenshot phone frames */
-  .shot { width: 250px; border-radius: 40px; background: #0d0a0b; padding: 11px; box-shadow: 0 30px 60px rgba(26,19,21,.22), 0 0 0 1px rgba(0,0,0,.06); flex: none; }
-  .shot img { width: 100%; display: block; border-radius: 30px; }
-  .gallery { display: flex; gap: 22px; overflow-x: auto; padding: 6px 24px 20px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
-  .gallery .shotwrap { scroll-snap-align: center; text-align: center; }
-  .gallery .shotcap { font-family: var(--mono); font-size: .72rem; color: var(--ink-3); letter-spacing: .05em; margin-top: 14px; }
-  .gallery::-webkit-scrollbar { height: 0; }
+  .shot { width: 258px; border-radius: 42px; background: #0d0a0b; padding: 11px; box-shadow: 0 30px 60px rgba(26,19,21,.22), 0 0 0 1px rgba(0,0,0,.06); }
+  .shot img { width: 100%; display: block; border-radius: 31px; aspect-ratio: 1179 / 2556; object-fit: cover; }
+
+  /* scroll-driven product tour: alternating rows that slide in from the sides */
+  .tour { display: flex; flex-direction: column; gap: 100px; }
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+  .frow .shotcol { display: flex; justify-content: center; }
+  .frow.rev .shotcol { order: 2; }
+  .frow .txt { max-width: 42ch; }
+  .frow .eyebrow { display: block; margin-bottom: 12px; }
+  .frow .txt h3 { font-size: clamp(1.5rem, 3.2vw, 2.1rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+  .frow .txt p { color: var(--ink-2); margin-top: 14px; font-size: 1.08rem; }
+  .frow .shotcol { opacity: 0; transform: translateX(-52px); transition: opacity .85s cubic-bezier(.2,.7,.2,1), transform .85s cubic-bezier(.2,.7,.2,1); will-change: transform; }
+  .frow.rev .shotcol { transform: translateX(52px); }
+  .frow .txt { opacity: 0; transform: translateY(22px); transition: opacity .85s .12s ease, transform .85s .12s cubic-bezier(.2,.7,.2,1); }
+  .frow.in .shotcol, .frow.in .txt { opacity: 1; transform: none; }
 
   /* --- motion --- */
   @keyframes riseIn { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
@@ -246,24 +262,19 @@
   </section>
 
   <section id="how">
-    <div class="shell how">
-      <div>
+    <div class="shell" style="max-width:660px;">
+      <div style="text-align:center;">
         <span class="eyebrow">The daily ritual</span>
         <h2 style="font-size:clamp(1.7rem,3.8vw,2.6rem);font-weight:800;margin-top:12px;">Your whole plan, start to finish, in one tap.</h2>
-        <p style="color:var(--ink-2);margin:14px 0 24px;">No hunting through menus. Tap once and StethoAI walks you through the entire routine, then shows you what changed.</p>
-        <ol class="steps">
-          <li class="step"><span class="n">01</span><span><span class="t">Take a 30-second reading</span><div class="d">Your calm, honest baseline for the day.</div></span></li>
-          <li class="step"><span class="n">02</span><span><span class="t">Log a quick daily check-in</span><div class="d">Sleep, caffeine, stress, mood — a few taps.</div></span></li>
-          <li class="step"><span class="n">03</span><span><span class="t">Breathe through a guided exercise</span><div class="d">An animated pace to slow you down.</div></span></li>
-          <li class="step"><span class="n">04</span><span><span class="t">Take a second reading</span><div class="d">Measure your heart right after.</div></span></li>
-          <li class="step"><span class="n">05</span><span><span class="t">See how your heart changed</span><div class="d">Before → after, and how you feel now.</div></span></li>
-        </ol>
+        <p style="color:var(--ink-2);margin:14px auto 30px;max-width:46ch;">No hunting through menus. Tap once and StethoAI walks you through the entire routine, then shows you what changed.</p>
       </div>
-      <div class="phone-stage">
-        <div class="shot">
-          <img src="__IMG_PLAN__" alt="StethoAI plan-complete screen showing heart rate dropping from 79 to 73 bpm" width="480" height="1040" loading="lazy" />
-        </div>
-      </div>
+      <ol class="steps">
+        <li class="step"><span class="n">01</span><span><span class="t">Take a 30-second reading</span><div class="d">Your calm, honest baseline for the day.</div></span></li>
+        <li class="step"><span class="n">02</span><span><span class="t">Log a quick daily check-in</span><div class="d">Sleep, caffeine, stress, mood — a few taps.</div></span></li>
+        <li class="step"><span class="n">03</span><span><span class="t">Breathe through a guided exercise</span><div class="d">An animated pace to slow you down.</div></span></li>
+        <li class="step"><span class="n">04</span><span><span class="t">Take a second reading</span><div class="d">Measure your heart right after.</div></span></li>
+        <li class="step"><span class="n">05</span><span><span class="t">See how your heart changed</span><div class="d">Before → after, and how you feel now.</div></span></li>
+      </ol>
     </div>
   </section>
 
@@ -272,14 +283,55 @@
       <div class="sec-head">
         <span class="eyebrow">See it in action</span>
         <h2>Real screens, real readings.</h2>
-        <p>No mockups — this is the actual app on a real phone.</p>
+        <p>No mockups — every screen here is the actual app running on a real phone.</p>
       </div>
-    </div>
-    <div class="gallery">
-      <div class="shotwrap"><div class="shot"><img src="__IMG_HOME__" alt="StethoAI home dashboard with a 12-day streak and today's heart check" width="480" height="1040" loading="lazy" /></div><div class="shotcap">Your daily dashboard</div></div>
-      <div class="shotwrap"><div class="shot"><img src="__IMG_HRRESULT__" alt="Heart rate reading result: 79 bpm, resting normal, with HRV estimate" width="480" height="1040" loading="lazy" /></div><div class="shotcap">30-second reading</div></div>
-      <div class="shotwrap"><div class="shot"><img src="__IMG_TRENDS__" alt="Trends screen with a 30-day heart rate chart and averages" width="480" height="1040" loading="lazy" /></div><div class="shotcap">Trends over time</div></div>
-      <div class="shotwrap"><div class="shot"><img src="__IMG_CHECKIN__" alt="Daily check-in for sleep, caffeine, exercise, stress and mood" width="480" height="1040" loading="lazy" /></div><div class="shotcap">Daily check-in</div></div>
+
+      <div class="tour">
+        <div class="frow">
+          <div class="shotcol"><div class="shot"><img src="__IMG_HOME__" alt="StethoAI home dashboard with a 12-day streak and today's heart check" loading="lazy" /></div></div>
+          <div class="txt">
+            <span class="eyebrow">Your daily dashboard</span>
+            <h3>Everything in one glance</h3>
+            <p>Your streak, today's reading, and your whole plan — the moment you open the app.</p>
+          </div>
+        </div>
+
+        <div class="frow rev">
+          <div class="shotcol"><div class="shot"><img src="__IMG_HRRESULT__" alt="Heart rate result: 79 bpm, resting normal, with HRV estimate" loading="lazy" /></div></div>
+          <div class="txt">
+            <span class="eyebrow">30-second reading</span>
+            <h3>Your camera is the sensor</h3>
+            <p>Rest a finger on the lens. StethoAI reads your pulse from the light passing through your skin — and estimates your HRV too.</p>
+          </div>
+        </div>
+
+        <div class="frow">
+          <div class="shotcol"><div class="shot"><img src="__IMG_CHECKIN__" alt="Daily check-in for sleep, caffeine, exercise, stress and mood" loading="lazy" /></div></div>
+          <div class="txt">
+            <span class="eyebrow">Learns your heart</span>
+            <h3>A quick daily check-in</h3>
+            <p>Log sleep, caffeine, stress, and mood in seconds. StethoAI ties them to your heart rate to surface your personal patterns.</p>
+          </div>
+        </div>
+
+        <div class="frow rev">
+          <div class="shotcol"><div class="shot"><img src="__IMG_TRENDS__" alt="Trends screen with a 30-day heart rate chart and averages" loading="lazy" /></div></div>
+          <div class="txt">
+            <span class="eyebrow">Over time</span>
+            <h3>Watch your patterns emerge</h3>
+            <p>Your heart rate trend across weeks, with your averages, HRV, and streak — all in one place.</p>
+          </div>
+        </div>
+
+        <div class="frow">
+          <div class="shotcol"><div class="shot"><img src="__IMG_PLAN__" alt="Plan-complete screen showing heart rate dropping from 79 to 73 bpm" loading="lazy" /></div></div>
+          <div class="txt">
+            <span class="eyebrow">Calm on command</span>
+            <h3>See your heart settle</h3>
+            <p>Take a reading, breathe, then read again — and watch your rate drop in real time. Proof you can steady yourself in two minutes.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -370,22 +422,25 @@
     if (reduce) { draw(0); } else { loop(); }
   })();
 
-  // Scroll-triggered reveals with a gentle per-row stagger.
+  // Scroll-triggered reveals: generic fade-ups plus the alternating tour rows.
   (function () {
     var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var els = document.querySelectorAll(".sec-head, .cards .card, .how > div, .split .note, .final");
+    var reveals = document.querySelectorAll(".sec-head, .cards .card, .steps, .split .note, .final");
+    var rows = document.querySelectorAll(".frow");
     if (reduce || !("IntersectionObserver" in window)) {
-      els.forEach(function (e) { e.classList.add("in"); });
+      reveals.forEach(function (e) { e.classList.add("in"); });
+      rows.forEach(function (e) { e.classList.add("in"); });
       return;
     }
-    els.forEach(function (e) { e.classList.add("reveal"); });
+    reveals.forEach(function (e) { e.classList.add("reveal"); });
     document.querySelectorAll(".cards .card").forEach(function (c, i) { c.style.transitionDelay = (i * 0.09) + "s"; });
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (en) {
         if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
       });
-    }, { threshold: 0.15, rootMargin: "0px 0px -8% 0px" });
-    els.forEach(function (e) { io.observe(e); });
+    }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+    reveals.forEach(function (e) { io.observe(e); });
+    rows.forEach(function (e) { io.observe(e); });
   })();
 
   // Make the phone mockup feel live: the bpm gently drifts like a real reading.
