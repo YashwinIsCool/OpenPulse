@@ -73,7 +73,7 @@ struct TrendsView: View {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Tokens.Spacing.md) {
                         StatTile(icon: "heart.fill", label: "Resting HR Avg", value: currentAverage.map { "\($0) bpm" } ?? "—")
                         StatTile(icon: "waveform.path.ecg", label: "HRV Avg", value: averageHRV.map { "\(Int($0)) ms" } ?? "—")
-                        StatTile(icon: "flame.fill", label: "Streak", value: "\(user.streakCount) days")
+                        StatTile(icon: "flame.fill", label: "Streak", value: "\(user.streakCount) day\(user.streakCount == 1 ? "" : "s")")
                         StatTile(icon: "calendar", label: "Days Tracked", value: "\(daysTracked)")
                     }
 

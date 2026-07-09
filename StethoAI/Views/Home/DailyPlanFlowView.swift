@@ -15,7 +15,6 @@ struct DailyPlanFlowView: View {
 
     enum Stage { case baseline, after }
     enum Phase: Equatable {
-        case intro
         case hrInstructions(Stage)
         case hrRecording(Stage)
         case hrResult(Stage)
@@ -25,7 +24,7 @@ struct DailyPlanFlowView: View {
         case results
     }
 
-    @State private var phase: Phase = .intro
+    @State private var phase: Phase = .hrInstructions(.baseline)
     @State private var baselineBPM: Int?
     @State private var afterBPM: Int?
     @State private var pendingBPM: Int = 0
@@ -38,14 +37,13 @@ struct DailyPlanFlowView: View {
             Tokens.Colors.adaptiveBackground.ignoresSafeArea()
 
             switch phase {
-            case .intro:
-                introView
             case .hrInstructions(let stage):
-                stepChrome(step: stage == .baseline ? 1 : 4) {
-                    HeartRateInstructionsView(
-                        onStart: { enterRecording(stage) },
-                        onCancel: { exitPlan() }
-                    )
+                HeartRateInstructionsView(
+                    onStart: { enterRecording(stage) },
+                    onCancel: { exitPlan() }
+                )
+                .overlay(alignment: .top) {
+                    stepBadge(step: stage == .baseline ? 1 : 4)
                 }
             case .hrRecording:
                 HeartRateRecordingView(camera: camera, onCancel: {
@@ -55,8 +53,18 @@ struct DailyPlanFlowView: View {
             case .hrResult(let stage):
                 HeartRateResultView(user: user, bpm: pendingBPM, hrvMs: pendingHRV) {
                     saveReading(bpm: pendingBPM, hrv: pendingHRV)
-                    if stage == .baseline { baselineBPM = pendingBPM; phase = .checkIn }
-                    else { afterBPM = pendingBPM; phase = .results }
+                    if stage == .baseline {
+                        baselineBPM = pendingBPM
+                        phase = .checkIn
+                    } else {
+                        // In demo mode, show a clean downward change for screenshots.
+                        if AppSettings.shared.isDemoMode, let b = baselineBPM {
+                            afterBPM = max(58, b - Int.random(in: 6...12))
+                        } else {
+                            afterBPM = pendingBPM
+                        }
+                        phase = .results
+                    }
                 }
             case .hrFailed(let stage):
                 failedView(stage)
@@ -77,76 +85,6 @@ struct DailyPlanFlowView: View {
         }
         .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
         .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
-    }
-
-    // MARK: - Intro
-
-    private var introView: some View {
-        VStack(spacing: Tokens.Spacing.xl) {
-            HStack {
-                Spacer()
-                closeButton
-            }
-            .padding(.horizontal, Tokens.Spacing.lg)
-            .padding(.top, Tokens.Spacing.sm)
-
-            Spacer()
-
-            Image(systemName: "list.bullet.clipboard.fill")
-                .font(.system(size: 52))
-                .foregroundStyle(Tokens.Colors.primaryRed)
-
-            VStack(spacing: Tokens.Spacing.sm) {
-                Text("Today's plan")
-                    .font(Tokens.Fonts.pageTitle)
-                    .tracking(Tokens.Tracking.pageTitle)
-                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                Text("A guided 5-minute check-in with your heart. We'll take a reading, log how your day's going, do a breathing exercise, then measure again to see the change.")
-                    .font(Tokens.Fonts.body)
-                    .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Tokens.Spacing.xxl)
-            }
-
-            VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-                planStep(number: 1, icon: "heart.fill", text: "Heart rate — baseline")
-                planStep(number: 2, icon: "square.and.pencil", text: "Daily check-in")
-                planStep(number: 3, icon: "wind", text: "Breathing exercise")
-                planStep(number: 4, icon: "heart.fill", text: "Heart rate — after")
-                planStep(number: 5, icon: "sparkles", text: "Your results")
-            }
-            .padding(Tokens.Spacing.lg)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Tokens.Colors.adaptiveCard)
-            .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous).stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1))
-            .padding(.horizontal, Tokens.Spacing.lg)
-
-            Spacer()
-
-            PrimaryButton(title: "Let's go", icon: "play.fill") {
-                phase = .hrInstructions(.baseline)
-            }
-            .padding(.horizontal, Tokens.Spacing.xl)
-            .padding(.bottom, Tokens.Spacing.xl)
-        }
-    }
-
-    private func planStep(number: Int, icon: String, text: String) -> some View {
-        HStack(spacing: Tokens.Spacing.md) {
-            Text("\(number)")
-                .font(Tokens.Fonts.caption)
-                .foregroundStyle(.white)
-                .frame(width: 24, height: 24)
-                .background(Tokens.Colors.primaryRed)
-                .clipShape(Circle())
-            Image(systemName: icon)
-                .foregroundStyle(Tokens.Colors.primaryRed)
-                .frame(width: 24)
-            Text(text)
-                .font(Tokens.Fonts.body)
-                .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
-        }
     }
 
     // MARK: - Results
@@ -266,6 +204,13 @@ struct DailyPlanFlowView: View {
     }
 
     // MARK: - Chrome
+
+    private func stepBadge(step: Int) -> some View {
+        Text("Step \(step) of 5")
+            .font(Tokens.Fonts.caption)
+            .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+            .padding(.top, Tokens.Spacing.md)
+    }
 
     private func stepChrome<Content: View>(step: Int, @ViewBuilder content: () -> Content) -> some View {
         VStack(spacing: 0) {

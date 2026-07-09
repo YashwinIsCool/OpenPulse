@@ -386,6 +386,12 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
         isMeasuring = false
         stopSessionAndTorch()
 
+        // Demo mode returns believable values so marketing screenshots look real.
+        if AppSettings.shared.isDemoMode {
+            onFinished?(Int.random(in: 66...80), Double.random(in: 40...56))
+            return
+        }
+
         // Prefer the accumulated clean measurement samples; fall back to the rolling
         // buffer for the simulator path (which streams straight into samples).
         let source = measurementSamples.count > 60 ? measurementSamples : samples
@@ -599,6 +605,8 @@ enum HeartRateSignalProcessor {
         }
         let meanMs = intervalsMs.reduce(0, +) / Double(intervalsMs.count)
         let varMs = intervalsMs.reduce(0) { $0 + ($1 - meanMs) * ($1 - meanMs) } / Double(intervalsMs.count)
-        return varMs.squareRoot()
+        let sdnn = varMs.squareRoot()
+        // Only report physiologically plausible HRV; noisy reads produce absurd values.
+        return (8...180).contains(sdnn) ? sdnn : nil
     }
 }

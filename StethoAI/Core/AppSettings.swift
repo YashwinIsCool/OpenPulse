@@ -36,6 +36,12 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(eveningTime, forKey: Keys.eveningTime) }
     }
 
+    /// When on, the app fills with realistic sample data and heart-rate readings
+    /// return believable values — used to capture clean marketing screenshots.
+    @Published var isDemoMode: Bool {
+        didSet { defaults.set(isDemoMode, forKey: Keys.isDemoMode) }
+    }
+
     private enum Keys {
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let notificationsEnabled = "notificationsEnabled"
@@ -44,6 +50,7 @@ final class AppSettings: ObservableObject {
         static let weeklyInsightEnabled = "weeklyInsightEnabled"
         static let morningTime = "morningTime"
         static let eveningTime = "eveningTime"
+        static let isDemoMode = "isDemoMode"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -53,6 +60,7 @@ final class AppSettings: ObservableObject {
         self.morningCheckEnabled = defaults.object(forKey: Keys.morningCheckEnabled) as? Bool ?? true
         self.eveningBreathingEnabled = defaults.object(forKey: Keys.eveningBreathingEnabled) as? Bool ?? true
         self.weeklyInsightEnabled = defaults.object(forKey: Keys.weeklyInsightEnabled) as? Bool ?? true
+        self.isDemoMode = defaults.bool(forKey: Keys.isDemoMode)
 
         let calendar = Calendar.current
         self.morningTime = defaults.object(forKey: Keys.morningTime) as? Date

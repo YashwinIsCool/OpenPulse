@@ -2,6 +2,8 @@ import SwiftUI
 
 struct MoreView: View {
     let user: User
+    @Environment(\.modelContext) private var modelContext
+    @ObservedObject private var settings = AppSettings.shared
     @State private var isSharePresented = false
     @State private var isFeedbackPresented = false
 
@@ -35,6 +37,37 @@ struct MoreView: View {
                     section(title: "Support") {
                         actionRow(icon: "square.and.arrow.up", title: "Share StethoAI") { isSharePresented = true }
                         actionRow(icon: "envelope.fill", title: "Send Feedback") { isFeedbackPresented = true }
+                    }
+
+                    section(title: "Developer") {
+                        Card {
+                            Toggle(isOn: Binding(
+                                get: { settings.isDemoMode },
+                                set: { on in
+                                    settings.isDemoMode = on
+                                    if on { HeartSampleData.seed(context: modelContext, user: user) }
+                                    else { HeartSampleData.clear(context: modelContext, user: user) }
+                                }
+                            )) {
+                                HStack(spacing: Tokens.Spacing.md) {
+                                    Image(systemName: "wand.and.stars")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundStyle(Tokens.Colors.primaryRed)
+                                        .frame(width: 32, height: 32)
+                                        .background(Tokens.Colors.adaptiveSoftRedSurface)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text("Demo data")
+                                            .font(Tokens.Fonts.cardTitle)
+                                            .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                                        Text("Fills the app with sample data for screenshots")
+                                            .font(Tokens.Fonts.caption)
+                                            .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+                                    }
+                                }
+                            }
+                            .tint(Tokens.Colors.primaryRed)
+                        }
                     }
 
                     Text("StethoAI is a wellness and education tool. It is not a medical device and does not diagnose conditions.")
