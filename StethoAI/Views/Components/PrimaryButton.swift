@@ -9,17 +9,17 @@ struct PrimaryButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: Tokens.Spacing.sm) {
-                Text(title)
-                    .font(Tokens.Fonts.cardTitle)
                 if let icon {
                     Image(systemName: icon)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                 }
+                Text(title)
+                    .font(.headline)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, Tokens.Padding.button)
-            .foregroundStyle(.white)
-            .background(isDisabled ? Tokens.Colors.primaryRed.opacity(0.4) : Tokens.Colors.primaryRed)
+            .padding(.vertical, 15)
+            .foregroundStyle(Tokens.Colors.onInk)
+            .background(isDisabled ? Tokens.Colors.ink.opacity(0.3) : Tokens.Colors.ink)
             .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.button, style: .continuous))
         }
         .disabled(isDisabled)

@@ -39,6 +39,17 @@ enum Tokens {
         static let adaptiveTextQuaternary = Color(light: 0x94A3B8, dark: 0x64748B)
         static let adaptiveSoftRedSurface = Color(light: 0xFEF2F2, dark: 0x2A1416)
         static let adaptiveLightRedTint = Color(light: 0xFEE2E2, dark: 0x3A1A1D)
+
+        // Neutral "ink" for primary actions. Red is reserved for the brand mark and
+        // for flagged readings, so it keeps its meaning in a health app.
+        static let ink = Color(light: 0x0F172A, dark: 0xF1F5F9)
+        static let onInk = Color(light: 0xFFFFFF, dark: 0x0B0F14)
+
+        // Reading-status text colors, dark enough to read on white (and light
+        // enough on dark). Only used where the color means something.
+        static let statusGood = Color(light: 0x15803D, dark: 0x4ADE80)
+        static let statusWatch = Color(light: 0xB45309, dark: 0xFBBF24)
+        static let statusFlag = Color(light: 0xB91C1C, dark: 0xF87171)
     }
 
     enum Fonts {
@@ -49,6 +60,14 @@ enum Tokens {
         static let body = Font.system(size: 13, weight: .medium)
         static let caption = Font.system(size: 11, weight: .medium)
         static let microLabel = Font.system(size: 11, weight: .semibold)
+
+        // Larger, Dynamic Type-aware styles for the simplified screens — they grow
+        // with the user's iPhone text size, which matters for older users.
+        static let screenTitle = Font.system(.title, weight: .bold)
+        static let headline = Font.system(.title3, weight: .semibold)
+        static let bodyText = Font.system(.body)
+        static let secondaryText = Font.system(.subheadline)
+        static let readingNumber = Font.system(size: 72, weight: .semibold).monospacedDigit()
     }
 
     enum Tracking {
