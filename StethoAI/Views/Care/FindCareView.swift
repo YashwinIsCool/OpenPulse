@@ -103,7 +103,7 @@ struct FindCareView: View {
                     UIApplication.shared.open(url)
                 }
             } label: {
-                Label(loc.t(resource.actionLabel ?? "Call"), systemImage: "phone.fill")
+                Label("\(loc.t(resource.actionLabel ?? "Call")) (\(number))", systemImage: "phone.fill")
                     .font(Tokens.Fonts.body)
                     .foregroundStyle(Tokens.Colors.primaryRed)
             }

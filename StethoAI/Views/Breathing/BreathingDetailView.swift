@@ -50,8 +50,8 @@ struct BreathingDetailView: View {
             HStack {
                 Spacer()
                 Button("Skip") { finish() }
-                    .font(Tokens.Fonts.body)
-                    .foregroundStyle(Tokens.Colors.primaryRed)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
             }
             .padding(.horizontal, Tokens.Spacing.lg)
             .padding(.top, Tokens.Spacing.sm)
@@ -60,16 +60,16 @@ struct BreathingDetailView: View {
 
             ZStack {
                 Circle()
-                    .fill(Tokens.Colors.lightRedTint)
-                    .frame(width: 220, height: 220)
+                    .fill(Tokens.Colors.ink.opacity(0.06))
+                    .frame(width: 240, height: 240)
                     .scaleEffect(scale)
                 Circle()
-                    .fill(Tokens.Colors.primaryRed)
-                    .frame(width: 220, height: 220)
-                    .scaleEffect(scale * 0.7)
+                    .stroke(Tokens.Colors.ink.opacity(0.25), lineWidth: 2)
+                    .frame(width: 240, height: 240)
+                    .scaleEffect(scale)
                 Text(currentLabel)
-                    .font(Tokens.Fonts.sectionHeading)
-                    .foregroundStyle(.white)
+                    .font(Tokens.Fonts.screenTitle)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
             }
 
             Text(timeString(secondsRemainingTotal))
@@ -85,22 +85,19 @@ struct BreathingDetailView: View {
     private var completionView: some View {
         VStack(spacing: Tokens.Spacing.xl) {
             Spacer()
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(Tokens.Colors.successGreen)
-            Text("Nice work")
-                .font(Tokens.Fonts.pageTitle)
+            Text("Done")
+                .font(Tokens.Fonts.screenTitle)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-            Text(onComplete == nil ? "Want to see the effect on your heart rate?" : "Next, we'll check how your heart rate responded.")
-                .font(Tokens.Fonts.body)
+            Text("Want to see the effect on your heart rate?")
+                .font(Tokens.Fonts.bodyText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 .multilineTextAlignment(.center)
             Spacer()
             VStack(spacing: Tokens.Spacing.sm) {
                 if let onComplete {
-                    PrimaryButton(title: "Continue", icon: "arrow.right") { onComplete() }
+                    PrimaryButton(title: "Continue") { onComplete() }
                 } else {
-                    PrimaryButton(title: "Take a Heart Rate Reading", icon: "heart.fill") {
+                    PrimaryButton(title: "Check my heart rate", icon: "heart.fill") {
                         isPresentingHeartRateCheck = true
                     }
                     SecondaryButton(title: "Done", action: { dismiss() })
@@ -151,6 +148,8 @@ struct BreathingDetailView: View {
         isFinished = true
         modelContext.insert(BreathingSession(exerciseType: exerciseType, duration: elapsed))
         StreakManager.updateStreakIfDayComplete(context: modelContext, user: user)
+        // In the guided plan, go straight on to the next step — no extra screen.
+        onComplete?()
     }
 
     private func timeString(_ seconds: Int) -> String {

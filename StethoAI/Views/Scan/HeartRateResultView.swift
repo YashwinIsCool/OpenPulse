@@ -122,7 +122,7 @@ struct HeartRateResultView: View {
                     UIApplication.shared.open(url)
                 }
             } label: {
-                Label(loc.t(resource.actionLabel ?? "Call"), systemImage: "phone.fill")
+                Label("\(loc.t(resource.actionLabel ?? "Call")) (\(number))", systemImage: "phone.fill")
                     .font(Tokens.Fonts.secondaryText.weight(.semibold))
                     .foregroundStyle(Tokens.Colors.statusFlag)
             }

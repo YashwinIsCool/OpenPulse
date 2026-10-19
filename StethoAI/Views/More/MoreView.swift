@@ -1,95 +1,85 @@
 import SwiftUI
 
+/// The Help tab: getting care first, then learning, then settings and about.
+/// A standard iOS grouped list — familiar, and it never looks generated.
 struct MoreView: View {
     let user: User
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var loc = Localizer.shared
     @State private var isSharePresented = false
     @State private var isFeedbackPresented = false
     @State private var isCarePresented = false
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Tokens.Spacing.xl) {
-                    Text("More")
-                        .font(Tokens.Fonts.pageTitle)
-                        .tracking(Tokens.Tracking.pageTitle)
-                        .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                        .padding(.top, Tokens.Spacing.sm)
-
-                    section(title: "Profile") {
-                        navRow(icon: "person.fill", title: "Account") { AccountView(user: user) }
+            List {
+                Section {
+                    Button { isCarePresented = true } label: {
+                        row(icon: "cross.case", title: "Where to get care", subtitle: "Free and low-cost places to start")
                     }
-
-                    section(title: "Preferences") {
-                        navRow(icon: "globe", title: "Language") { LanguageSettingsView() }
-                        navRow(icon: "bell.fill", title: "Notifications") { NotificationSettingsView() }
+                    NavigationLink { EducationLibraryView() } label: {
+                        row(icon: "book", title: "Heart health basics", subtitle: nil)
                     }
-
-                    section(title: "Get care") {
-                        actionRow(icon: "cross.case.fill", title: "Where to get care") { isCarePresented = true }
-                    }
-
-                    section(title: "Learn") {
-                        navRow(icon: "book.fill", title: "Heart health basics") { EducationLibraryView() }
-                    }
-
-                    section(title: "About") {
-                        navRow(icon: "info.circle.fill", title: "About StethoAI") { AboutView() }
-                        navRow(icon: "doc.text.fill", title: "Privacy Policy & Terms") { PrivacyPolicyView() }
-                    }
-
-                    section(title: "Support") {
-                        actionRow(icon: "square.and.arrow.up", title: "Share StethoAI") { isSharePresented = true }
-                        actionRow(icon: "envelope.fill", title: "Send Feedback") { isFeedbackPresented = true }
-                    }
-
-                    // Debug builds only: turning demo data off wipes every reading,
-                    // so real users must never see this switch.
-                    #if DEBUG
-                    section(title: "Developer") {
-                        Card {
-                            Toggle(isOn: Binding(
-                                get: { settings.isDemoMode },
-                                set: { on in
-                                    settings.isDemoMode = on
-                                    if on { HeartSampleData.seed(context: modelContext, user: user) }
-                                    else { HeartSampleData.clear(context: modelContext, user: user) }
-                                }
-                            )) {
-                                HStack(spacing: Tokens.Spacing.md) {
-                                    Image(systemName: "wand.and.stars")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(Tokens.Colors.primaryRed)
-                                        .frame(width: 32, height: 32)
-                                        .background(Tokens.Colors.adaptiveSoftRedSurface)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                    VStack(alignment: .leading, spacing: 1) {
-                                        Text("Demo data")
-                                            .font(Tokens.Fonts.cardTitle)
-                                            .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                                        Text("Replaces all data with samples for screenshots")
-                                            .font(Tokens.Fonts.caption)
-                                            .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-                                    }
-                                }
-                            }
-                            .tint(Tokens.Colors.primaryRed)
-                        }
-                    }
-                    #endif
-
-                    Text("StethoAI is a wellness and education tool. It is not a medical device and does not diagnose conditions.")
-                        .font(Tokens.Fonts.caption)
-                        .foregroundStyle(Tokens.Colors.adaptiveTextQuaternary)
-                        .padding(.top, Tokens.Spacing.sm)
                 }
-                .padding(Tokens.Spacing.lg)
+
+                Section(loc.t("Settings")) {
+                    NavigationLink { AccountView(user: user) } label: {
+                        row(icon: "person", title: "Account", subtitle: nil)
+                    }
+                    NavigationLink { LanguageSettingsView() } label: {
+                        row(icon: "globe", title: "Language", subtitle: loc.language.nativeName)
+                    }
+                    NavigationLink { NotificationSettingsView() } label: {
+                        row(icon: "bell", title: "Notifications", subtitle: nil)
+                    }
+                }
+
+                Section(loc.t("About")) {
+                    NavigationLink { AboutView() } label: {
+                        row(icon: "info.circle", title: "About StethoAI", subtitle: nil)
+                    }
+                    NavigationLink { PrivacyPolicyView() } label: {
+                        row(icon: "lock", title: "Privacy and terms", subtitle: nil)
+                    }
+                    Button { isSharePresented = true } label: {
+                        row(icon: "square.and.arrow.up", title: "Share StethoAI", subtitle: nil)
+                    }
+                    Button { isFeedbackPresented = true } label: {
+                        row(icon: "envelope", title: "Send feedback", subtitle: nil)
+                    }
+                }
+
+                // Debug builds only: turning demo data off wipes every reading,
+                // so real users must never see this switch.
+                #if DEBUG
+                Section {
+                    Toggle(isOn: Binding(
+                        get: { settings.isDemoMode },
+                        set: { on in
+                            settings.isDemoMode = on
+                            if on { HeartSampleData.seed(context: modelContext, user: user) }
+                            else { HeartSampleData.clear(context: modelContext, user: user) }
+                        }
+                    )) {
+                        row(icon: "wand.and.stars", title: "Demo data", subtitle: "Replaces all data with samples for screenshots")
+                    }
+                } header: {
+                    Text("Developer")
+                }
+                #endif
+
+                Section {
+                } footer: {
+                    Text(loc.t("StethoAI is a wellness and education tool. It is not a medical device and does not diagnose conditions."))
+                }
             }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
             .background(Tokens.Colors.adaptiveBackground)
+            .navigationTitle(loc.t("Help"))
             .sheet(isPresented: $isSharePresented) {
-                ShareSheet(items: ["Check out StethoAI — an AI-powered heart wellness companion.", URL(string: "https://apps.apple.com")].compactMap { $0 })
+                ShareSheet(items: ["StethoAI — a free heart check using just your phone's camera.", URL(string: "https://apps.apple.com")].compactMap { $0 })
             }
             .sheet(isPresented: $isFeedbackPresented) {
                 ShareSheet(items: ["StethoAI feedback: "])
@@ -100,53 +90,23 @@ struct MoreView: View {
         }
     }
 
-    private func section<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
-            Text(title.uppercased())
-                .font(Tokens.Fonts.microLabel)
-                .tracking(Tokens.Tracking.microLabel)
-                .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-            VStack(spacing: Tokens.Spacing.sm) {
-                content()
-            }
-        }
-    }
-
-    private func navRow<Destination: View>(icon: String, title: String, @ViewBuilder destination: () -> Destination) -> some View {
-        NavigationLink(destination: destination()) {
-            Card {
-                rowContent(icon: icon, title: title, showsChevron: true)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func actionRow(icon: String, title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Card {
-                rowContent(icon: icon, title: title, showsChevron: false)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func rowContent(icon: String, title: String, showsChevron: Bool) -> some View {
+    private func row(icon: String, title: String, subtitle: String?) -> some View {
         HStack(spacing: Tokens.Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Tokens.Colors.primaryRed)
-                .frame(width: 32, height: 32)
-                .background(Tokens.Colors.adaptiveSoftRedSurface)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            Text(title)
-                .font(Tokens.Fonts.cardTitle)
-                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-            Spacer()
-            if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Tokens.Colors.adaptiveTextQuaternary)
+                .font(.system(size: 17))
+                .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(loc.t(title))
+                    .font(Tokens.Fonts.bodyText)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                if let subtitle {
+                    Text(loc.t(subtitle))
+                        .font(Tokens.Fonts.secondaryText)
+                        .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+                }
             }
         }
+        .padding(.vertical, 2)
     }
 }

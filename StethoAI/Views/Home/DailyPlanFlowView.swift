@@ -98,189 +98,174 @@ struct DailyPlanFlowView: View {
     // MARK: - Breathing setup
 
     private var breathingSetupView: some View {
-        VStack(spacing: Tokens.Spacing.xl) {
-            Spacer()
-
-            Image(systemName: "wind")
-                .font(.system(size: 48))
-                .foregroundStyle(Tokens.Colors.primaryRed)
-
-            VStack(spacing: Tokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
+            VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
                 Text("Breathing exercise")
-                    .font(Tokens.Fonts.pageTitle)
-                    .tracking(Tokens.Tracking.pageTitle)
+                    .font(Tokens.Fonts.screenTitle)
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                Text("How long would you like to breathe? A slow, calm exercise to settle your heart.")
-                    .font(Tokens.Fonts.body)
+                Text("A slow, calm exercise to settle your heart. How long would you like?")
+                    .font(Tokens.Fonts.bodyText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Tokens.Spacing.xxl)
             }
 
             HStack(spacing: Tokens.Spacing.sm) {
                 ForEach(breathingOptions, id: \.seconds) { option in
-                    let isSelected = breathingSeconds == option.seconds
-                    Text(option.label)
-                        .font(Tokens.Fonts.cardTitle)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Tokens.Spacing.md)
-                        .foregroundStyle(isSelected ? .white : Tokens.Colors.primaryRed)
-                        .background(isSelected ? Tokens.Colors.primaryRed : Tokens.Colors.adaptiveSoftRedSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.12)) { breathingSeconds = option.seconds }
-                        }
+                    ChoiceChip(label: option.label, isSelected: breathingSeconds == option.seconds) {
+                        withAnimation(.easeInOut(duration: 0.12)) { breathingSeconds = option.seconds }
+                    }
                 }
             }
-            .padding(.horizontal, Tokens.Spacing.lg)
 
             Spacer()
-            Spacer()
 
-            PrimaryButton(title: "Start breathing", icon: "play.fill") {
+            PrimaryButton(title: "Start breathing") {
                 phase = .breathing
             }
-            .padding(.horizontal, Tokens.Spacing.xl)
-            .padding(.bottom, Tokens.Spacing.xl)
         }
+        .padding(.horizontal, Tokens.Spacing.xl)
+        .padding(.top, Tokens.Spacing.xxl)
+        .padding(.bottom, Tokens.Spacing.xl)
     }
 
     // MARK: - Results
 
     private var resultsView: some View {
         ScrollView {
-            VStack(spacing: Tokens.Spacing.xl) {
+            VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
                 HStack {
                     Spacer()
                     closeButton
                 }
 
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(Tokens.Colors.successGreen)
+                VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
+                    Text("All done")
+                        .font(Tokens.Fonts.screenTitle)
+                        .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                    if let change = changeText {
+                        Text(change)
+                            .font(Tokens.Fonts.bodyText)
+                            .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
+                    }
+                }
 
-                Text("Plan complete!")
-                    .font(Tokens.Fonts.pageTitle)
-                    .tracking(Tokens.Tracking.pageTitle)
-                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                heartRateChange
 
-                heartRateChangeCard
-
-                VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
+                VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
                     Text("How do you feel now?")
-                        .font(Tokens.Fonts.cardTitle)
+                        .font(.headline)
                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                     ScaleRow(range: 1...5, lowLabel: "Rough", highLabel: "Great", selected: $feeling)
                 }
-                .padding(Tokens.Spacing.lg)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Tokens.Colors.adaptiveCard)
-                .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous).stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1))
-
-                DisclaimerFooter(text: "For informational use only. Not medical advice.")
-
-                PrimaryButton(title: "Finish", icon: "checkmark") { finishPlan() }
-                    .padding(.top, Tokens.Spacing.sm)
             }
-            .padding(Tokens.Spacing.lg)
+            .padding(.horizontal, Tokens.Spacing.xl)
+            .padding(.top, Tokens.Spacing.sm)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: Tokens.Spacing.sm) {
+                PrimaryButton(title: "Finish") { finishPlan() }
+                DisclaimerFooter(text: "For informational use only. Not medical advice.")
+            }
+            .padding(.horizontal, Tokens.Spacing.xl)
+            .padding(.vertical, Tokens.Spacing.sm)
+            .background(Tokens.Colors.adaptiveBackground)
         }
     }
 
-    private var heartRateChangeCard: some View {
-        VStack(spacing: Tokens.Spacing.md) {
-            Text("YOUR HEART RATE")
-                .font(Tokens.Fonts.microLabel)
-                .tracking(Tokens.Tracking.microLabel)
-                .foregroundStyle(.white.opacity(0.9))
-
-            HStack(alignment: .firstTextBaseline, spacing: Tokens.Spacing.lg) {
-                bpmColumn(label: "Before", value: baselineBPM)
-                Image(systemName: "arrow.right")
-                    .foregroundStyle(.white.opacity(0.9))
-                bpmColumn(label: "After", value: afterBPM)
-            }
-
-            if let change = changeText {
-                Text(change)
-                    .font(Tokens.Fonts.body)
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-            }
+    private var heartRateChange: some View {
+        HStack(spacing: 0) {
+            bpmColumn(label: "Before", value: baselineBPM)
+            Rectangle()
+                .fill(Tokens.Colors.adaptiveBorder)
+                .frame(width: 1, height: 56)
+            bpmColumn(label: "After breathing", value: afterBPM)
         }
-        .padding(Tokens.Spacing.xl)
-        .frame(maxWidth: .infinity)
-        .background(Tokens.Colors.primaryRed)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(.vertical, Tokens.Spacing.lg)
+        .background(Tokens.Colors.adaptiveCard)
+        .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous)
+                .stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1)
+        )
     }
 
     private func bpmColumn(label: String, value: Int?) -> some View {
         VStack(spacing: 2) {
-            Text(value.map(String.init) ?? "—")
-                .font(.system(size: 40, weight: .bold))
-                .foregroundStyle(.white)
             Text(label)
-                .font(Tokens.Fonts.caption)
-                .foregroundStyle(.white.opacity(0.9))
+                .font(Tokens.Fonts.secondaryText)
+                .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                Text(value.map(String.init) ?? "—")
+                    .font(.system(size: 40, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                Text("bpm")
+                    .font(Tokens.Fonts.secondaryText)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+            }
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var changeText: String? {
         guard let b = baselineBPM, let a = afterBPM else { return nil }
         let diff = a - b
-        if diff < 0 { return "Your heart rate dropped \(abs(diff)) bpm — nice work calming down." }
-        if diff > 0 { return "Your heart rate rose \(diff) bpm. That's normal some days — keep at it." }
-        return "Your heart rate held steady."
+        if diff < 0 { return "Your heart rate went down \(abs(diff)) bpm after breathing." }
+        if diff > 0 { return "Your heart rate went up \(diff) bpm. That happens some days." }
+        return "Your heart rate stayed the same."
     }
 
     // MARK: - Failed
 
     private func failedView(_ stage: Stage) -> some View {
-        VStack(spacing: Tokens.Spacing.xl) {
+        VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
             Spacer()
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 44))
-                .foregroundStyle(Tokens.Colors.warningAmber)
             Text("Couldn't get a clear reading")
-                .font(Tokens.Fonts.sectionHeading)
+                .font(Tokens.Fonts.screenTitle)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
             Text("Make sure your fingertip fully covers the camera and flash, then try again.")
-                .font(Tokens.Fonts.body)
+                .font(Tokens.Fonts.bodyText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Tokens.Spacing.xxl)
             Spacer()
             VStack(spacing: Tokens.Spacing.sm) {
-                PrimaryButton(title: "Try again", icon: "arrow.clockwise") { phase = .hrInstructions(stage) }
-                SecondaryButton(title: "Skip this step", icon: "forward.fill") {
+                PrimaryButton(title: "Try again") { phase = .hrInstructions(stage) }
+                SecondaryButton(title: "Skip this step") {
                     if stage == .baseline { phase = .checkIn } else { phase = .results }
                 }
             }
-            .padding(.horizontal, Tokens.Spacing.xl)
-            .padding(.bottom, Tokens.Spacing.xl)
         }
+        .padding(.horizontal, Tokens.Spacing.xl)
+        .padding(.bottom, Tokens.Spacing.xl)
     }
 
     // MARK: - Chrome
 
+    /// Five short segments that fill in as the plan moves along.
+    private func progressBar(step: Int) -> some View {
+        HStack(spacing: 4) {
+            ForEach(1...5, id: \.self) { i in
+                Capsule()
+                    .fill(i <= step ? Tokens.Colors.ink : Tokens.Colors.adaptiveBorder)
+                    .frame(height: 4)
+            }
+        }
+        .frame(maxWidth: 160)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Step \(step) of 5")
+    }
+
     private func stepBadge(step: Int) -> some View {
-        Text("Step \(step) of 5")
-            .font(Tokens.Fonts.caption)
-            .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-            .padding(.top, Tokens.Spacing.md)
+        progressBar(step: step)
+            .padding(.top, Tokens.Spacing.lg)
     }
 
     private func stepChrome<Content: View>(step: Int, @ViewBuilder content: () -> Content) -> some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Step \(step) of 5")
-                    .font(Tokens.Fonts.caption)
-                    .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+                progressBar(step: step)
                 Spacer()
                 closeButton
             }
-            .padding(.horizontal, Tokens.Spacing.lg)
+            .padding(.horizontal, Tokens.Spacing.xl)
             .padding(.top, Tokens.Spacing.sm)
             content()
         }
@@ -289,11 +274,13 @@ struct DailyPlanFlowView: View {
     private var closeButton: some View {
         Button(action: { exitPlan() }) {
             Image(systemName: "xmark")
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-                .padding(Tokens.Spacing.sm)
+                .padding(10)
                 .background(Tokens.Colors.adaptiveCard)
                 .clipShape(Circle())
         }
+        .accessibilityLabel("Close")
     }
 
     // MARK: - Logic

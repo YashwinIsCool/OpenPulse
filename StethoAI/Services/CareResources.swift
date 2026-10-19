@@ -3,10 +3,9 @@ import Foundation
 /// One route to real care shown in the "Where to get care" pathway.
 ///
 /// This is the product side of our first commitment: never flag someone without a
-/// pathway to care. Each deployment (a specific health camp, region, or partner)
-/// should replace `CareResources.forDeployment` with the actual local resources —
-/// the nearest health centre, the partner hospital, the community health worker's
-/// number — verified by the on-the-ground clinical partner before any screening.
+/// pathway to care. The defaults are general starting points that apply in most
+/// countries; a specific deployment can replace `CareResources.forDeployment` with
+/// verified local resources.
 struct CareResource: Identifiable {
     enum Action {
         case call(String)        // phone number
@@ -23,48 +22,59 @@ struct CareResource: Identifiable {
 }
 
 enum CareResources {
-    /// The active resource list for the current deployment.
-    ///
-    /// The defaults below are illustrative pathways for an India pilot. They are
-    /// starting points, NOT verified for any specific location — a clinical partner
-    /// must confirm and localize them before a real screening.
-    static var forDeployment: [CareResource] { indiaPilotDefaults }
+    /// The active resource list.
+    static var forDeployment: [CareResource] { general }
 
-    private static let indiaPilotDefaults: [CareResource] = [
-        CareResource(
-            icon: "cross.case.fill",
-            title: "Nearest government health centre",
-            detail: "Primary Health Centres (PHCs) and Community Health Centres offer free or low-cost check-ups. A health worker can measure your blood pressure and refer you further if needed.",
-            action: .info,
-            actionLabel: nil
-        ),
-        CareResource(
-            icon: "indianrupeesign.circle.fill",
-            title: "Ayushman Bharat (PM-JAY)",
-            detail: "A government scheme that covers free hospital care for eligible families. Many people who qualify don't know they're eligible — ask a health worker to help you check.",
-            action: .website("https://pmjay.gov.in"),
-            actionLabel: "Learn about eligibility"
-        ),
-        CareResource(
-            icon: "person.2.fill",
-            title: "Your community health worker (ASHA)",
-            detail: "ASHA workers can guide you to the right care, help with government schemes, and follow up with you locally.",
-            action: .info,
-            actionLabel: nil
-        ),
-        CareResource(
-            icon: "stethoscope",
-            title: "Partner clinic / health camp",
-            detail: "If you were screened at a StethoAI health camp, the clinician there can review your reading and tell you the next step. Show them your saved heart record.",
-            action: .info,
-            actionLabel: nil
-        ),
-        CareResource(
-            icon: "phone.fill",
-            title: "Emergency",
-            detail: "If you have chest pain, trouble breathing, fainting, or feel very unwell right now, seek help immediately.",
-            action: .call("108"),
-            actionLabel: "Call 108 (ambulance)"
-        )
-    ]
+    private static var general: [CareResource] {
+        [
+            CareResource(
+                icon: "cross.case.fill",
+                title: "A local clinic or health center",
+                detail: "Many communities have public or community health centers with free or low-cost check-ups. A nurse or health worker can check your blood pressure and refer you if needed.",
+                action: .info,
+                actionLabel: nil
+            ),
+            CareResource(
+                icon: "stethoscope",
+                title: "A doctor or pharmacist",
+                detail: "If you have a doctor, show them your readings. Many pharmacists can check your blood pressure for free and tell you where to go next.",
+                action: .info,
+                actionLabel: nil
+            ),
+            CareResource(
+                icon: "phone.bubble.fill",
+                title: "A nurse or health advice line",
+                detail: "Many countries have a free phone line where a nurse can tell you how urgent things are and where to go. Search for your country's health advice line.",
+                action: .info,
+                actionLabel: nil
+            ),
+            CareResource(
+                icon: "doc.text.fill",
+                title: "Bring your heart record",
+                detail: "In the History tab, tap Share with a doctor to make a one-page record of your readings, so a clinician sees the pattern, not just one number.",
+                action: .info,
+                actionLabel: nil
+            ),
+            CareResource(
+                icon: "phone.fill",
+                title: "Emergency",
+                detail: "If you have chest pain, trouble breathing, fainting, or feel very unwell right now, seek help immediately.",
+                action: .call(emergencyNumber),
+                actionLabel: "Call emergency services"
+            )
+        ]
+    }
+
+    /// The emergency number for the phone's region. 112 is the fallback because
+    /// mobile networks in most countries route it to local emergency services.
+    static var emergencyNumber: String {
+        switch Locale.current.region?.identifier {
+        case "US", "CA", "MX", "PR", "PH": return "911"
+        case "GB", "IE", "HK", "MY", "SG": return "999"
+        case "AU": return "000"
+        case "NZ": return "111"
+        case "JP", "KR": return "119"
+        default: return "112"
+        }
+    }
 }

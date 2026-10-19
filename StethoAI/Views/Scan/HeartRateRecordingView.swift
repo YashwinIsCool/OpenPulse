@@ -10,9 +10,9 @@ struct HeartRateRecordingView: View {
             HStack {
                 Spacer()
                 Button(action: onCancel) {
-                    Text("Cancel")
-                        .font(Tokens.Fonts.body)
-                        .foregroundStyle(Tokens.Colors.primaryRed)
+                    Text(loc.t("Cancel"))
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 }
             }
             .padding(.horizontal, Tokens.Spacing.lg)
@@ -106,11 +106,11 @@ struct HeartRateRecordingView: View {
         VStack(spacing: Tokens.Spacing.sm) {
             Text("\(camera.secondsRemaining)")
                 .font(.system(size: 72, weight: .bold))
-                .foregroundStyle(camera.isPaused ? Tokens.Colors.warningAmber : Tokens.Colors.primaryRed)
+                .foregroundStyle(camera.isPaused ? Tokens.Colors.statusWatch : Tokens.Colors.adaptiveTextPrimary)
                 .monospacedDigit()
 
             Text(loc.t("seconds remaining"))
-                .font(Tokens.Fonts.body)
+                .font(Tokens.Fonts.bodyText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
 
             if camera.isPaused {

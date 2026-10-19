@@ -62,9 +62,9 @@ struct DailyCheckInForm: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Tokens.Spacing.xl) {
+            VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
                 Text("A quick check-in helps StethoAI learn what moves your heart rate. Log what you can — skip the rest.")
-                    .font(Tokens.Fonts.body)
+                    .font(Tokens.Fonts.bodyText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
 
                 section("How many hours did you sleep?") {
@@ -86,7 +86,7 @@ struct DailyCheckInForm: View {
             .padding(Tokens.Spacing.lg)
         }
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton(title: saveTitle, icon: "checkmark") {
+            PrimaryButton(title: saveTitle) {
                 onSave(CheckInData(
                     sleepHours: sleepIndex.map { sleepValues[$0] },
                     caffeineCups: caffeineIndex.map { caffeineValues[$0] },
@@ -104,37 +104,57 @@ struct DailyCheckInForm: View {
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
             Text(title)
-                .font(Tokens.Fonts.cardTitle)
+                .font(.headline)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
             content()
         }
     }
 }
 
-/// A horizontal row of selectable pills.
+/// One selectable answer. Outlined when off, filled with ink when picked — no
+/// color needed to show the choice.
+struct ChoiceChip: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.body.weight(.medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .foregroundStyle(isSelected ? Tokens.Colors.onInk : Tokens.Colors.adaptiveTextPrimary)
+                .background(isSelected ? Tokens.Colors.ink : Tokens.Colors.adaptiveCard)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(isSelected ? Color.clear : Tokens.Colors.adaptiveBorder, lineWidth: 1)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// A horizontal row of selectable answers.
 struct PillRow: View {
     let labels: [String]
     @Binding var selectedIndex: Int?
+    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         HStack(spacing: Tokens.Spacing.sm) {
             ForEach(Array(labels.enumerated()), id: \.offset) { index, label in
                 let isSelected = selectedIndex == index
-                Text(label)
-                    .font(Tokens.Fonts.body)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .foregroundStyle(isSelected ? .white : Tokens.Colors.primaryRed)
-                    .background(isSelected ? Tokens.Colors.primaryRed : Tokens.Colors.adaptiveSoftRedSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.12)) {
-                            selectedIndex = isSelected ? nil : index
-                        }
+                ChoiceChip(label: loc.t(label), isSelected: isSelected) {
+                    withAnimation(.easeInOut(duration: 0.12)) {
+                        selectedIndex = isSelected ? nil : index
                     }
+                }
             }
         }
     }
@@ -146,33 +166,26 @@ struct ScaleRow: View {
     let lowLabel: String
     let highLabel: String
     @Binding var selected: Int?
+    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         VStack(spacing: Tokens.Spacing.xs) {
             HStack(spacing: Tokens.Spacing.sm) {
                 ForEach(Array(range), id: \.self) { value in
                     let isSelected = selected == value
-                    Text("\(value)")
-                        .font(Tokens.Fonts.cardTitle)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .foregroundStyle(isSelected ? .white : Tokens.Colors.primaryRed)
-                        .background(isSelected ? Tokens.Colors.primaryRed : Tokens.Colors.adaptiveSoftRedSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.12)) {
-                                selected = isSelected ? nil : value
-                            }
+                    ChoiceChip(label: "\(value)", isSelected: isSelected) {
+                        withAnimation(.easeInOut(duration: 0.12)) {
+                            selected = isSelected ? nil : value
                         }
+                    }
                 }
             }
             HStack {
-                Text(lowLabel)
+                Text(loc.t(lowLabel))
                 Spacer()
-                Text(highLabel)
+                Text(loc.t(highLabel))
             }
-            .font(Tokens.Fonts.caption)
+            .font(Tokens.Fonts.secondaryText)
             .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
         }
     }

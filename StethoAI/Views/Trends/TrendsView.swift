@@ -2,276 +2,297 @@ import SwiftUI
 import SwiftData
 import Charts
 
+/// The History tab: how readings have moved over time, every reading in a plain
+/// list, saved heart sounds, and a one-tap heart record to show a doctor.
 struct TrendsView: View {
     let user: User
 
-    @Query(sort: \HeartRateReading.timestamp, order: .forward) private var allReadings: [HeartRateReading]
+    @Query(sort: \HeartRateReading.timestamp, order: .reverse) private var allReadings: [HeartRateReading]
     @Query(sort: \HeartSoundRecording.timestamp, order: .reverse) private var recordings: [HeartSoundRecording]
-    @Query(sort: \BreathingSession.timestamp, order: .reverse) private var breathingSessions: [BreathingSession]
+    @ObservedObject private var loc = Localizer.shared
 
-    @State private var period: String = "30D"
-    @State private var selectedRecording: HeartSoundRecording?
-    private let periods = ["7D", "30D", "90D", "1Y"]
-
-    private var periodDays: Int {
-        switch period {
-        case "7D": return 7
-        case "30D": return 30
-        case "90D": return 90
-        default: return 365
+    enum Period: String, CaseIterable, Identifiable {
+        case week = "Week", month = "Month", year = "Year"
+        var id: String { rawValue }
+        var days: Int {
+            switch self {
+            case .week: return 7
+            case .month: return 30
+            case .year: return 365
+            }
         }
     }
 
-    private var filteredReadings: [HeartRateReading] {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -periodDays, to: .now) ?? .distantPast
+    @State private var period: Period = .month
+    @State private var showAllReadings = false
+    @State private var selectedRecording: HeartSoundRecording?
+    @State private var report: SharedFile?
+
+    private var readings: [HeartRateReading] {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -period.days, to: .now) ?? .distantPast
         return allReadings.filter { $0.timestamp >= cutoff }
     }
 
-    private var previousPeriodReadings: [HeartRateReading] {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -periodDays, to: .now) ?? .distantPast
-        let priorCutoff = Calendar.current.date(byAdding: .day, value: -(periodDays * 2), to: .now) ?? .distantPast
-        return allReadings.filter { $0.timestamp >= priorCutoff && $0.timestamp < cutoff }
+    private var average: Int? {
+        guard !readings.isEmpty else { return nil }
+        return Int((Double(readings.reduce(0) { $0 + $1.bpm }) / Double(readings.count)).rounded())
     }
 
-    private var currentAverage: Int? {
-        average(of: filteredReadings)
-    }
-
-    private var previousAverage: Int? {
-        average(of: previousPeriodReadings)
-    }
-
-    private var averageHRV: Double? {
-        let values = filteredReadings.compactMap { $0.hrvMs }
-        guard !values.isEmpty else { return nil }
-        return values.reduce(0, +) / Double(values.count)
-    }
-
-    /// One point per day (the day's average), so several readings taken minutes
-    /// apart don't zoom the chart's time axis down to seconds.
-    private var dailyAverages: [(day: Date, bpm: Int)] {
-        let byDay = Dictionary(grouping: filteredReadings) { Calendar.current.startOfDay(for: $0.timestamp) }
-        return byDay.compactMap { day, readings in average(of: readings).map { (day, $0) } }
-            .sorted { $0.day < $1.day }
-    }
-
-    private var chartXDomain: ClosedRange<Date> {
-        let today = Calendar.current.startOfDay(for: .now)
-        let start = Calendar.current.date(byAdding: .day, value: -(periodDays - 1), to: today) ?? today
-        let end = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? .now
-        return start...end
-    }
-
-    /// Four evenly spaced date labels, kept off the right edge so none get clipped.
-    private var chartXTicks: [Date] {
-        let domain = chartXDomain
-        let span = domain.upperBound.timeIntervalSince(domain.lowerBound)
-        return (0..<4).map { domain.lowerBound.addingTimeInterval(span * (0.05 + Double($0) * 0.25)) }
-    }
-
-    private var chartYDomain: ClosedRange<Int> {
-        let values = dailyAverages.map(\.bpm)
-        let low = min(values.min() ?? 60, 60) - 10
-        let high = max(values.max() ?? 90, 90) + 10
-        return low...high
-    }
-
-    private var daysTracked: Int {
-        Set(filteredReadings.map { Calendar.current.startOfDay(for: $0.timestamp) }).count
+    private var daysChecked: Int {
+        Set(readings.map { Calendar.current.startOfDay(for: $0.timestamp) }).count
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: Tokens.Spacing.lg) {
-                    HStack {
-                        Text("Trends")
-                            .font(Tokens.Fonts.pageTitle)
-                            .tracking(Tokens.Tracking.pageTitle)
-                            .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                        Spacer()
+                VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
+                    Text(loc.t("History"))
+                        .font(Tokens.Fonts.screenTitle)
+                        .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+
+                    Picker("", selection: $period) {
+                        ForEach(Period.allCases) { Text(loc.t($0.rawValue)).tag($0) }
                     }
-                    .padding(.top, Tokens.Spacing.sm)
+                    .pickerStyle(.segmented)
 
-                    SegmentedToggle(options: periods, selection: $period)
-
-                    heroSummary
-
-                    chartCard
-
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Tokens.Spacing.md) {
-                        StatTile(icon: "heart.fill", label: "Resting HR Avg", value: currentAverage.map { "\($0) bpm" } ?? "—")
-                        StatTile(icon: "waveform.path.ecg", label: "HRV Avg", value: averageHRV.map { "\(Int($0)) ms" } ?? "—")
-                        StatTile(icon: "flame.fill", label: "Streak", value: "\(user.streakCount) day\(user.streakCount == 1 ? "" : "s")")
-                        StatTile(icon: "calendar", label: "Days Tracked", value: "\(daysTracked)")
+                    if readings.isEmpty {
+                        emptyState
+                    } else {
+                        summary
+                        HeartRateHistoryChart(readings: readings, days: period.days)
+                            .frame(height: 200)
+                        readingsList
                     }
 
-                    heartSoundHistory
+                    heartSounds
+
+                    if !allReadings.isEmpty {
+                        SecondaryButton(title: loc.t("Share with a doctor"), icon: "doc.text") {
+                            report = HeartRecordPDF.make(user: user, readings: Array(allReadings.prefix(30)))
+                                .map(SharedFile.init)
+                        }
+                    }
                 }
-                .padding(Tokens.Spacing.lg)
+                .padding(.horizontal, Tokens.Spacing.xl)
+                .padding(.top, Tokens.Spacing.lg)
+                .padding(.bottom, Tokens.Spacing.xxl)
             }
             .background(Tokens.Colors.adaptiveBackground)
+            .navigationBarHidden(true)
+            .sheet(item: $selectedRecording) { HeartSoundDetailView(recording: $0) }
+            .sheet(item: $report) { ShareSheet(items: [$0.url]) }
         }
     }
 
-    private var heroSummary: some View {
-        HeroCard {
-            VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
-                Text("AVERAGE HEART RATE")
-                    .font(Tokens.Fonts.microLabel)
-                    .tracking(Tokens.Tracking.microLabel)
-                    .foregroundStyle(.white.opacity(0.92))
+    // MARK: - Sections
 
-                if let currentAverage {
-                    HStack(alignment: .lastTextBaseline, spacing: Tokens.Spacing.xs) {
-                        Text("\(currentAverage)")
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundStyle(.white)
-                        Text("bpm")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.85))
-                    }
-
-                    if let previousAverage {
-                        let diff = currentAverage - previousAverage
-                        HStack(spacing: Tokens.Spacing.xs) {
-                            Image(systemName: diff <= 0 ? "arrow.down" : "arrow.up")
-                            Text("\(abs(diff)) bpm vs previous \(period)")
-                        }
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.9))
-                    }
-                } else {
-                    Text("No data yet")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private var chartCard: some View {
-        Card {
-            VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-                Text("Heart rate over time")
-                    .font(Tokens.Fonts.cardTitle)
-                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-
-                if filteredReadings.isEmpty {
-                    Text("Complete a heart rate check to start your chart.")
-                        .font(Tokens.Fonts.body)
-                        .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-                        .frame(maxWidth: .infinity, minHeight: 160)
-                } else {
-                    Chart(dailyAverages, id: \.day) { point in
-                        AreaMark(
-                            x: .value("Date", point.day, unit: .day),
-                            yStart: .value("Floor", chartYDomain.lowerBound),
-                            yEnd: .value("BPM", point.bpm)
-                        )
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Tokens.Colors.chartAreaFillTop, Tokens.Colors.chartAreaFillBottom],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        LineMark(
-                            x: .value("Date", point.day, unit: .day),
-                            y: .value("BPM", point.bpm)
-                        )
-                        .foregroundStyle(Tokens.Colors.chartLineRed)
-                        .lineStyle(StrokeStyle(lineWidth: 2))
-                        PointMark(
-                            x: .value("Date", point.day, unit: .day),
-                            y: .value("BPM", point.bpm)
-                        )
-                        .foregroundStyle(Tokens.Colors.chartLineRed)
-                        .symbolSize(dailyAverages.count == 1 ? 60 : 20)
-                    }
-                    .frame(height: 180)
-                    .chartXScale(domain: chartXDomain)
-                    .chartYScale(domain: chartYDomain)
-                    .chartXAxis {
-                        AxisMarks(values: chartXTicks) { _ in
-                            AxisGridLine()
-                            AxisValueLabel(format: periodDays > 90
-                                ? .dateTime.month(.abbreviated)
-                                : .dateTime.month(.abbreviated).day())
-                        }
-                    }
-                    .chartYAxis {
-                        AxisMarks(position: .leading)
-                    }
-                }
-            }
-        }
-    }
-
-    private var heartSoundHistory: some View {
-        VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-            Text("Heart sound history")
-                .font(Tokens.Fonts.sectionHeading)
-                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if recordings.isEmpty {
-                Card {
-                    Text("No heart sound recordings yet.")
-                        .font(Tokens.Fonts.body)
-                        .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-                }
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: Tokens.Spacing.md) {
-                        ForEach(recordings) { recording in
-                            Button { selectedRecording = recording } label: {
-                                heartSoundTile(recording)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
-        }
-        .sheet(item: $selectedRecording) { recording in
-            HeartSoundDetailView(recording: recording)
-        }
-    }
-
-    private func heartSoundTile(_ recording: HeartSoundRecording) -> some View {
+    private var emptyState: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
-            Image(systemName: "waveform.path.ecg")
-                .font(.system(size: 20))
-                .foregroundStyle(Tokens.Colors.primaryRed)
-            Text("Heart sound")
-                .font(Tokens.Fonts.cardTitle)
+            Text(loc.t("No checks yet"))
+                .font(Tokens.Fonts.headline)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-            Text(recording.timestamp.formatted(date: .abbreviated, time: .omitted))
-                .font(Tokens.Fonts.caption)
-                .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-            Label("Play", systemImage: "play.circle.fill")
-                .font(Tokens.Fonts.caption)
-                .foregroundStyle(Tokens.Colors.primaryRed)
-                .padding(.top, 2)
+            Text(loc.t("Your readings will show up here after your first heart check."))
+                .font(Tokens.Fonts.bodyText)
+                .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
         }
-        .padding(Tokens.Spacing.md)
-        .frame(width: 140, alignment: .leading)
-        .background(Tokens.Colors.adaptiveCard)
-        .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous)
-                .stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1)
-        )
     }
 
-    private func average(of readings: [HeartRateReading]) -> Int? {
-        guard !readings.isEmpty else { return nil }
-        let sum = readings.reduce(0) { $0 + $1.bpm }
-        return Int((Double(sum) / Double(readings.count)).rounded())
+    private var summary: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(loc.t("Average"))
+                .font(Tokens.Fonts.secondaryText)
+                .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+            (
+                Text("\(average ?? 0)")
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                + Text(" bpm · \(daysChecked) \(loc.t(daysChecked == 1 ? "day checked" : "days checked"))")
+                    .font(Tokens.Fonts.secondaryText)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+            )
+        }
+    }
+
+    private var readingsList: some View {
+        let shown = showAllReadings ? readings : Array(readings.prefix(5))
+        return VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
+            Text(loc.t("Readings"))
+                .font(Tokens.Fonts.headline)
+                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+            ListCard {
+                ForEach(Array(shown.enumerated()), id: \.element.id) { index, reading in
+                    if index > 0 { ListDivider() }
+                    readingRow(reading)
+                }
+                if readings.count > 5 {
+                    ListDivider()
+                    Button {
+                        withAnimation { showAllReadings.toggle() }
+                    } label: {
+                        Text(showAllReadings ? loc.t("Show fewer") : "\(loc.t("Show all")) (\(readings.count))")
+                            .font(Tokens.Fonts.bodyText)
+                            .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func readingRow(_ reading: HeartRateReading) -> some View {
+        let category = HeartRateCategory.categorize(bpm: reading.bpm)
+        return HStack {
+            Text(reading.timestamp.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
+                .font(Tokens.Fonts.bodyText)
+                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+            Spacer()
+            Text("\(reading.bpm)")
+                .font(Tokens.Fonts.bodyText.weight(.semibold))
+                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                .monospacedDigit()
+            Text(loc.t(category.shortName))
+                .font(Tokens.Fonts.secondaryText)
+                .foregroundStyle(category.statusColor)
+                .frame(minWidth: 70, alignment: .trailing)
+        }
+        .padding(.vertical, 12)
+    }
+
+    private var heartSounds: some View {
+        VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
+            Text(loc.t("Heart sounds"))
+                .font(Tokens.Fonts.headline)
+                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+            if recordings.isEmpty {
+                Text(loc.t("Recordings you make will appear here, ready to play or share."))
+                    .font(Tokens.Fonts.secondaryText)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+            } else {
+                ListCard {
+                    ForEach(Array(recordings.prefix(10).enumerated()), id: \.element.id) { index, recording in
+                        if index > 0 { ListDivider() }
+                        Button { selectedRecording = recording } label: {
+                            HStack {
+                                Text(recording.timestamp.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
+                                    .font(Tokens.Fonts.bodyText)
+                                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                                Spacer()
+                                Image(systemName: "play.circle")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
+                            }
+                            .padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
     }
 }
+
+// MARK: - Chart
+
+/// Daily averages over the period, with the typical resting range (50–90) shaded so
+/// the line has meaning without reading axis numbers.
+struct HeartRateHistoryChart: View {
+    let readings: [HeartRateReading]
+    let days: Int
+
+    private var dailyAverages: [(day: Date, bpm: Int)] {
+        let byDay = Dictionary(grouping: readings) { Calendar.current.startOfDay(for: $0.timestamp) }
+        return byDay.map { day, items in
+            (day, Int((Double(items.reduce(0) { $0 + $1.bpm }) / Double(items.count)).rounded()))
+        }
+        .sorted { $0.day < $1.day }
+    }
+
+    private var xDomain: ClosedRange<Date> {
+        let today = Calendar.current.startOfDay(for: .now)
+        let start = Calendar.current.date(byAdding: .day, value: -(days - 1), to: today) ?? today
+        let end = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? .now
+        return start...end
+    }
+
+    private var xTicks: [Date] {
+        let span = xDomain.upperBound.timeIntervalSince(xDomain.lowerBound)
+        return (0..<4).map { xDomain.lowerBound.addingTimeInterval(span * (0.05 + Double($0) * 0.25)) }
+    }
+
+    private var yDomain: ClosedRange<Int> {
+        let values = dailyAverages.map(\.bpm)
+        return (min(values.min() ?? 50, 50) - 10)...(max(values.max() ?? 90, 90) + 10)
+    }
+
+    var body: some View {
+        Chart {
+            RectangleMark(
+                xStart: .value("Start", xDomain.lowerBound),
+                xEnd: .value("End", xDomain.upperBound),
+                yStart: .value("Low", 50),
+                yEnd: .value("High", 90)
+            )
+            .foregroundStyle(Tokens.Colors.statusGood.opacity(0.08))
+
+            ForEach(dailyAverages, id: \.day) { point in
+                LineMark(x: .value("Date", point.day, unit: .day), y: .value("BPM", point.bpm))
+                    .foregroundStyle(Tokens.Colors.ink)
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+                PointMark(x: .value("Date", point.day, unit: .day), y: .value("BPM", point.bpm))
+                    .foregroundStyle(Tokens.Colors.ink)
+                    .symbolSize(dailyAverages.count == 1 ? 60 : 16)
+            }
+        }
+        .chartXScale(domain: xDomain)
+        .chartYScale(domain: yDomain)
+        .chartXAxis {
+            AxisMarks(values: xTicks) { _ in
+                AxisValueLabel(format: days > 90 ? .dateTime.month(.abbreviated) : .dateTime.month(.abbreviated).day())
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading, values: [50, 90, 120].filter { yDomain.contains($0) }) { _ in
+                AxisGridLine()
+                AxisValueLabel()
+            }
+        }
+    }
+}
+
+// MARK: - Small list building blocks
+
+struct ListCard<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(spacing: 0) { content }
+            .padding(.horizontal, Tokens.Spacing.lg)
+            .background(Tokens.Colors.adaptiveCard)
+            .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous)
+                    .stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1)
+            )
+    }
+}
+
+struct ListDivider: View {
+    var body: some View {
+        Rectangle().fill(Tokens.Colors.adaptiveBorder).frame(height: 1)
+    }
+}
+
+/// A file ready to hand to the share sheet.
+struct SharedFile: Identifiable {
+    let url: URL
+    var id: URL { url }
+}
+
+// MARK: - Heart sound detail
 
 /// Detail sheet for a past heart-sound recording: listen back and share the audio.
 private struct HeartSoundDetailView: View {
@@ -283,24 +304,19 @@ private struct HeartSoundDetailView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Tokens.Spacing.lg) {
-                    VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
-                        Text(recording.timestamp.formatted(date: .complete, time: .shortened))
-                            .font(Tokens.Fonts.sectionHeading)
-                            .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                        Text("Recorded heart sound")
-                            .font(Tokens.Fonts.caption)
-                            .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-                    }
+                    Text(recording.timestamp.formatted(date: .complete, time: .shortened))
+                        .font(Tokens.Fonts.headline)
+                        .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
 
                     HeartSoundPlayerView(url: recording.fileURL)
 
-                    SecondaryButton(title: "Share with Doctor", icon: "square.and.arrow.up") {
+                    SecondaryButton(title: "Share with a doctor", icon: "square.and.arrow.up") {
                         isSharePresented = true
                     }
 
                     DisclaimerFooter(text: "Educational use only · Not medical advice.")
                 }
-                .padding(Tokens.Spacing.lg)
+                .padding(Tokens.Spacing.xl)
             }
             .background(Tokens.Colors.adaptiveBackground)
             .navigationTitle("Heart sound")
