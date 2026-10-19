@@ -68,7 +68,7 @@ struct HeartRateFlowView: View {
     }
 
     private func saveAndFinish() {
-        let category = HeartRateCategory.categorize(bpm: resultBPM)
+        let category = HeartRateCategory.categorize(bpm: resultBPM, activity: user.activityLevel)
         let reading = HeartRateReading(bpm: resultBPM, hrvMs: resultHRV, category: category, source: .auto)
         modelContext.insert(reading)
         // Streak only advances once the whole daily plan is done.

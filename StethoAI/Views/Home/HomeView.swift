@@ -109,7 +109,7 @@ struct HomeView: View {
     }
 
     private func lastCheckLine(_ reading: HeartRateReading) -> some View {
-        let category = HeartRateCategory.categorize(bpm: reading.bpm)
+        let category = HeartRateCategory.categorize(bpm: reading.bpm, activity: user.activityLevel)
         return (
             Text("\(loc.t("Last check")): ")
                 .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)

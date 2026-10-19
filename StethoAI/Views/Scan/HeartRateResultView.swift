@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// The reading result — the screen people remember. Big number, one plain sentence
 /// in a color that means something, a simple range bar anyone can read, and (if the
@@ -10,15 +11,22 @@ struct HeartRateResultView: View {
     let onSave: () -> Void
 
     @ObservedObject private var loc = Localizer.shared
+    @Query(sort: \HeartRateReading.timestamp, order: .reverse) private var pastReadings: [HeartRateReading]
+    @Query(sort: \DailyLog.date, order: .reverse) private var logs: [DailyLog]
 
-    private var category: HeartRateCategory { HeartRateCategory.categorize(bpm: bpm) }
+    private var category: HeartRateCategory { HeartRateCategory.categorize(bpm: bpm, activity: user.activityLevel) }
+
+    private var todayLog: DailyLog? {
+        logs.first { Calendar.current.isDateInToday($0.date) }
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
                 reading
-                HeartRateRangeBar(bpm: bpm)
+                HeartRateRangeBar(bpm: bpm, lowThreshold: HeartRateCategory.lowThreshold(for: user.activityLevel))
                 guidance
+                usualForYou
                 if category.isConcerning {
                     careOptions
                 }
@@ -64,12 +72,63 @@ struct HeartRateResultView: View {
                 .font(Tokens.Fonts.bodyText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+            if user.activityLevel == .veryActive && bpm < 50 && category != .low {
+                Text(loc.t("A resting rate in the 40s is common for very active people."))
+                    .font(Tokens.Fonts.bodyText)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let hrvMs {
                 Text("\(loc.t("Heart rate variability")): \(Int(hrvMs)) ms")
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
             }
         }
+    }
+
+    // MARK: - Personal heart model
+
+    /// Compares this reading with what the on-device model expected for this
+    /// person right now — context, not a judgment.
+    private var usualForYou: some View {
+        let model = PersonalHeartModel(user: user, readings: pastReadings, logs: logs)
+        let result = model.compare(bpm: bpm, log: todayLog)
+        let comparisonText: String = {
+            switch result.comparison {
+            case .inLine: return "This reading is in line with your usual."
+            case .higher: return "This is higher than usual for you. Caffeine, stress, activity, or not resting first can all raise it."
+            case .lower: return "This is lower than usual for you."
+            }
+        }()
+        return VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
+            HStack(alignment: .firstTextBaseline) {
+                Label(loc.t("Usual for you right now"), systemImage: "person.crop.circle")
+                    .font(Tokens.Fonts.secondaryText.weight(.semibold))
+                    .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
+                Spacer()
+                Text("~\(result.expected) bpm")
+                    .font(Tokens.Fonts.bodyText.weight(.semibold))
+                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+            }
+            Text(loc.t(comparisonText))
+                .font(Tokens.Fonts.bodyText)
+                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(model.isPersonal
+                 ? loc.t("Learned on this phone from %d of your readings.").replacingOccurrences(of: "%d", with: "\(model.readingsUsed)")
+                 : loc.t("A starting estimate from your profile. It becomes personal after 7 readings."))
+                .font(Tokens.Fonts.secondaryText)
+                .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Tokens.Spacing.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Tokens.Colors.adaptiveCard)
+        .clipShape(RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Tokens.Radius.card, style: .continuous)
+                .stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1)
+        )
     }
 
     // MARK: - Pathway to care, shown inline for flagged readings
@@ -148,16 +207,18 @@ struct HeartRateResultView: View {
 /// without needing to know what "bpm" ranges mean.
 struct HeartRateRangeBar: View {
     let bpm: Int
+    /// Where "low" ends — 50 for most people, 40 for very active people.
+    var lowThreshold: Int = 50
 
     private let lower = 40.0
     private let upper = 140.0
     // Zone boundaries match HeartRateCategory.categorize.
-    private let zones: [(end: Double, color: Color)] = [
-        (50, Tokens.Colors.statusFlag),
+    private var zones: [(end: Double, color: Color)] { [
+        (Double(lowThreshold), Tokens.Colors.statusFlag),
         (90, Tokens.Colors.statusGood),
         (120, Tokens.Colors.statusWatch),
         (140, Tokens.Colors.statusFlag)
-    ]
+    ] }
 
     private func fraction(_ value: Double) -> CGFloat {
         CGFloat((min(max(value, lower), upper) - lower) / (upper - lower))
@@ -188,7 +249,7 @@ struct HeartRateRangeBar: View {
             .frame(height: 24)
 
             GeometryReader { geo in
-                ForEach([50, 90, 120], id: \.self) { mark in
+                ForEach([lowThreshold, 90, 120], id: \.self) { mark in
                     Text("\(mark)")
                         .font(.caption)
                         .foregroundStyle(Tokens.Colors.adaptiveTextQuaternary)

@@ -300,7 +300,7 @@ struct DailyPlanFlowView: View {
     }
 
     private func saveReading(bpm: Int, hrv: Double?) {
-        let reading = HeartRateReading(bpm: bpm, hrvMs: hrv, category: HeartRateCategory.categorize(bpm: bpm), source: .auto)
+        let reading = HeartRateReading(bpm: bpm, hrvMs: hrv, category: HeartRateCategory.categorize(bpm: bpm, activity: user.activityLevel), source: .auto)
         modelContext.insert(reading)
     }
 

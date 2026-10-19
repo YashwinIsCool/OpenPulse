@@ -143,7 +143,7 @@ struct TrendsView: View {
     }
 
     private func readingRow(_ reading: HeartRateReading) -> some View {
-        let category = HeartRateCategory.categorize(bpm: reading.bpm)
+        let category = HeartRateCategory.categorize(bpm: reading.bpm, activity: user.activityLevel)
         return HStack {
             Text(reading.timestamp.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
                 .font(Tokens.Fonts.bodyText)

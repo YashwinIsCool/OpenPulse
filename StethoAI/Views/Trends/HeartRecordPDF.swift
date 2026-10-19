@@ -38,7 +38,7 @@ private struct HeartRecordPage: View {
 
     private var bpms: [Int] { readings.map(\.bpm) }
     private var flaggedCount: Int {
-        readings.filter { HeartRateCategory.categorize(bpm: $0.bpm).isConcerning }.count
+        readings.filter { HeartRateCategory.categorize(bpm: $0.bpm, activity: user.activityLevel).isConcerning }.count
     }
 
     var body: some View {
@@ -70,7 +70,7 @@ private struct HeartRecordPage: View {
                     tableRow(
                         reading.timestamp.formatted(date: .abbreviated, time: .shortened),
                         "\(reading.bpm) bpm",
-                        HeartRateCategory.categorize(bpm: reading.bpm).shortName,
+                        HeartRateCategory.categorize(bpm: reading.bpm, activity: user.activityLevel).shortName,
                         header: false
                     )
                 }

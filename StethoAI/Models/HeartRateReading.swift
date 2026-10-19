@@ -7,13 +7,17 @@ enum HeartRateCategory: String, Codable {
     case elevated = "ELEVATED"
     case high = "HIGH"
 
-    static func categorize(bpm: Int) -> HeartRateCategory {
-        switch bpm {
-        case ..<50: return .low
-        case 50..<90: return .restingNormal
-        case 90..<120: return .elevated
-        default: return .high
-        }
+    /// Very active people commonly rest in the 40s, so for them the "low" line
+    /// moves down to 40 instead of 50.
+    static func lowThreshold(for activity: ActivityLevel) -> Int {
+        activity == .veryActive ? 40 : 50
+    }
+
+    static func categorize(bpm: Int, activity: ActivityLevel = .notSet) -> HeartRateCategory {
+        if bpm < lowThreshold(for: activity) { return .low }
+        if bpm < 90 { return .restingNormal }
+        if bpm < 120 { return .elevated }
+        return .high
     }
 
     /// A resting reading outside the normal range that warrants pointing the person
