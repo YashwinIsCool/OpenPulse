@@ -42,7 +42,7 @@ struct DailyCheckInForm: View {
     private let caffeineValues = [0, 1, 2, 3]
     private let caffeineLabels = ["None", "1", "2", "3+"]
     private let exerciseValues = [0, 15, 40, 75]
-    private let exerciseLabels = ["None", "Light", "Moder.", "Intense"]
+    private let exerciseLabels = ["None", "Light", "Medium", "Intense"]
 
     @State private var sleepIndex: Int?
     @State private var caffeineIndex: Int?

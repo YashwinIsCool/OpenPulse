@@ -45,6 +45,9 @@ struct MoreView: View {
                         actionRow(icon: "envelope.fill", title: "Send Feedback") { isFeedbackPresented = true }
                     }
 
+                    // Debug builds only: turning demo data off wipes every reading,
+                    // so real users must never see this switch.
+                    #if DEBUG
                     section(title: "Developer") {
                         Card {
                             Toggle(isOn: Binding(
@@ -66,7 +69,7 @@ struct MoreView: View {
                                         Text("Demo data")
                                             .font(Tokens.Fonts.cardTitle)
                                             .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                                        Text("Fills the app with sample data for screenshots")
+                                        Text("Replaces all data with samples for screenshots")
                                             .font(Tokens.Fonts.caption)
                                             .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                                     }
@@ -75,6 +78,7 @@ struct MoreView: View {
                             .tint(Tokens.Colors.primaryRed)
                         }
                     }
+                    #endif
 
                     Text("StethoAI is a wellness and education tool. It is not a medical device and does not diagnose conditions.")
                         .font(Tokens.Fonts.caption)

@@ -47,6 +47,35 @@ struct TrendsView: View {
         return values.reduce(0, +) / Double(values.count)
     }
 
+    /// One point per day (the day's average), so several readings taken minutes
+    /// apart don't zoom the chart's time axis down to seconds.
+    private var dailyAverages: [(day: Date, bpm: Int)] {
+        let byDay = Dictionary(grouping: filteredReadings) { Calendar.current.startOfDay(for: $0.timestamp) }
+        return byDay.compactMap { day, readings in average(of: readings).map { (day, $0) } }
+            .sorted { $0.day < $1.day }
+    }
+
+    private var chartXDomain: ClosedRange<Date> {
+        let today = Calendar.current.startOfDay(for: .now)
+        let start = Calendar.current.date(byAdding: .day, value: -(periodDays - 1), to: today) ?? today
+        let end = Calendar.current.date(byAdding: .day, value: 1, to: today) ?? .now
+        return start...end
+    }
+
+    /// Four evenly spaced date labels, kept off the right edge so none get clipped.
+    private var chartXTicks: [Date] {
+        let domain = chartXDomain
+        let span = domain.upperBound.timeIntervalSince(domain.lowerBound)
+        return (0..<4).map { domain.lowerBound.addingTimeInterval(span * (0.05 + Double($0) * 0.25)) }
+    }
+
+    private var chartYDomain: ClosedRange<Int> {
+        let values = dailyAverages.map(\.bpm)
+        let low = min(values.min() ?? 60, 60) - 10
+        let high = max(values.max() ?? 90, 90) + 10
+        return low...high
+    }
+
     private var daysTracked: Int {
         Set(filteredReadings.map { Calendar.current.startOfDay(for: $0.timestamp) }).count
     }
@@ -135,10 +164,11 @@ struct TrendsView: View {
                         .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                         .frame(maxWidth: .infinity, minHeight: 160)
                 } else {
-                    Chart(filteredReadings) { reading in
+                    Chart(dailyAverages, id: \.day) { point in
                         AreaMark(
-                            x: .value("Date", reading.timestamp),
-                            y: .value("BPM", reading.bpm)
+                            x: .value("Date", point.day, unit: .day),
+                            yStart: .value("Floor", chartYDomain.lowerBound),
+                            yEnd: .value("BPM", point.bpm)
                         )
                         .foregroundStyle(
                             LinearGradient(
@@ -148,13 +178,29 @@ struct TrendsView: View {
                             )
                         )
                         LineMark(
-                            x: .value("Date", reading.timestamp),
-                            y: .value("BPM", reading.bpm)
+                            x: .value("Date", point.day, unit: .day),
+                            y: .value("BPM", point.bpm)
                         )
                         .foregroundStyle(Tokens.Colors.chartLineRed)
                         .lineStyle(StrokeStyle(lineWidth: 2))
+                        PointMark(
+                            x: .value("Date", point.day, unit: .day),
+                            y: .value("BPM", point.bpm)
+                        )
+                        .foregroundStyle(Tokens.Colors.chartLineRed)
+                        .symbolSize(dailyAverages.count == 1 ? 60 : 20)
                     }
                     .frame(height: 180)
+                    .chartXScale(domain: chartXDomain)
+                    .chartYScale(domain: chartYDomain)
+                    .chartXAxis {
+                        AxisMarks(values: chartXTicks) { _ in
+                            AxisGridLine()
+                            AxisValueLabel(format: periodDays > 90
+                                ? .dateTime.month(.abbreviated)
+                                : .dateTime.month(.abbreviated).day())
+                        }
+                    }
                     .chartYAxis {
                         AxisMarks(position: .leading)
                     }

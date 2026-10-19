@@ -79,11 +79,6 @@ struct BreathingDetailView: View {
 
             Spacer()
             Spacer()
-
-            Button("End") { finish() }
-                .font(Tokens.Fonts.cardTitle)
-                .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-                .padding(.bottom, Tokens.Spacing.xl)
         }
     }
 
