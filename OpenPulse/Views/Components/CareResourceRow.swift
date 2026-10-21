@@ -5,7 +5,6 @@ import SwiftUI
 /// Put rows inside a ListCard, separated by ListDivider.
 struct CareResourceRow: View {
     let resource: CareResource
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         HStack(alignment: .top, spacing: Tokens.Spacing.md) {
@@ -15,10 +14,10 @@ struct CareResourceRow: View {
                 .frame(width: 24)
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
-                Text(loc.t(resource.title))
+                Text(resource.title)
                     .font(Tokens.Fonts.bodyText.weight(.semibold))
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                Text(loc.t(resource.detail))
+                Text(resource.detail)
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -38,7 +37,7 @@ struct CareResourceRow: View {
                     UIApplication.shared.open(url)
                 }
             } label: {
-                Label("\(loc.t(resource.actionLabel ?? "Call")) (\(number))", systemImage: "phone.fill")
+                Label("\(resource.actionLabel ?? "Call") (\(number))", systemImage: "phone.fill")
                     .font(Tokens.Fonts.secondaryText.weight(.semibold))
                     .foregroundStyle(Tokens.Colors.statusFlag)
             }
@@ -49,7 +48,7 @@ struct CareResourceRow: View {
                     UIApplication.shared.open(url)
                 }
             } label: {
-                Label(loc.t(resource.actionLabel ?? "Learn more"), systemImage: "arrow.up.right.square")
+                Label(resource.actionLabel ?? "Learn more", systemImage: "arrow.up.right.square")
                     .font(Tokens.Fonts.secondaryText.weight(.semibold))
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
             }

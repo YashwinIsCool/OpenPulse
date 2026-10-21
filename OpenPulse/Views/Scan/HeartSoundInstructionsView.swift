@@ -3,7 +3,6 @@ import SwiftUI
 struct HeartSoundInstructionsView: View {
     let onStart: () -> Void
     let onCancel: () -> Void
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -23,10 +22,10 @@ struct HeartSoundInstructionsView: View {
 
             VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
                 VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
-                    Text(loc.t("Record your heart sound"))
+                    Text("Record your heart sound")
                         .font(Tokens.Fonts.screenTitle)
                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                    Text(loc.t("A 30-second recording you can play back or share with a doctor. The app records it; it doesn't diagnose it."))
+                    Text("A 30-second recording you can play back or share with a doctor. The app records it; it doesn't diagnose it.")
                         .font(Tokens.Fonts.bodyText)
                         .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -42,7 +41,7 @@ struct HeartSoundInstructionsView: View {
 
             Spacer()
 
-            PrimaryButton(title: loc.t("Start recording"), icon: "mic.fill", action: onStart)
+            PrimaryButton(title: "Start recording", icon: "mic.fill", action: onStart)
                 .padding(.bottom, Tokens.Spacing.xl)
         }
         .padding(.horizontal, Tokens.Spacing.xl)
@@ -56,7 +55,7 @@ struct HeartSoundInstructionsView: View {
                 .frame(width: 26, height: 26)
                 .background(Tokens.Colors.ink)
                 .clipShape(Circle())
-            Text(loc.t(text))
+            Text(text)
                 .font(Tokens.Fonts.bodyText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 .fixedSize(horizontal: false, vertical: true)

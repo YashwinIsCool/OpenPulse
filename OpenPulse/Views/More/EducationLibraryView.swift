@@ -41,7 +41,6 @@ private let articles: [Article] = [
 ]
 
 struct EducationLibraryView: View {
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         List {
@@ -62,7 +61,7 @@ struct EducationLibraryView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(Tokens.Colors.adaptiveBackground)
-        .navigationTitle(loc.t("Heart health basics"))
+        .navigationTitle("Heart health basics")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

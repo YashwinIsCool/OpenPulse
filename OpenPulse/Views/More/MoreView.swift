@@ -6,7 +6,6 @@ struct MoreView: View {
     let user: User
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var settings = AppSettings.shared
-    @ObservedObject private var loc = Localizer.shared
     @State private var isSharePresented = false
     @State private var isFeedbackPresented = false
     @State private var isCarePresented = false
@@ -23,19 +22,16 @@ struct MoreView: View {
                     }
                 }
 
-                Section(loc.t("Settings")) {
+                Section("Settings") {
                     NavigationLink { AccountView(user: user) } label: {
                         row(icon: "person", title: "Account", subtitle: nil)
-                    }
-                    NavigationLink { LanguageSettingsView() } label: {
-                        row(icon: "globe", title: "Language", subtitle: loc.language.nativeName)
                     }
                     NavigationLink { NotificationSettingsView() } label: {
                         row(icon: "bell", title: "Notifications", subtitle: nil)
                     }
                 }
 
-                Section(loc.t("About")) {
+                Section("About") {
                     NavigationLink { AboutView() } label: {
                         row(icon: "info.circle", title: "About OpenPulse", subtitle: nil)
                     }
@@ -71,13 +67,13 @@ struct MoreView: View {
 
                 Section {
                 } footer: {
-                    Text(loc.t("OpenPulse is a wellness and education tool. It is not a medical device and does not diagnose conditions."))
+                    Text("OpenPulse is a wellness and education tool. It is not a medical device and does not diagnose conditions.")
                 }
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(Tokens.Colors.adaptiveBackground)
-            .navigationTitle(loc.t("Help"))
+            .navigationTitle("Help")
             .sheet(isPresented: $isSharePresented) {
                 ShareSheet(items: ["OpenPulse — a free heart check using just your phone's camera.", URL(string: "https://apps.apple.com")].compactMap { $0 })
             }
@@ -97,11 +93,11 @@ struct MoreView: View {
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
-                Text(loc.t(title))
+                Text(title)
                     .font(Tokens.Fonts.bodyText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                 if let subtitle {
-                    Text(loc.t(subtitle))
+                    Text(subtitle)
                         .font(Tokens.Fonts.secondaryText)
                         .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                 }

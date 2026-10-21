@@ -3,14 +3,13 @@ import SwiftUI
 struct HeartSoundRecordingView: View {
     @ObservedObject var recorder: HeartSoundRecorder
     let onCancel: () -> Void
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         VStack(spacing: Tokens.Spacing.xl) {
             HStack {
                 Spacer()
                 Button(action: onCancel) {
-                    Text(loc.t("Cancel"))
+                    Text("Cancel")
                         .font(.body.weight(.medium))
                         .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 }
@@ -25,7 +24,7 @@ struct HeartSoundRecordingView: View {
                     .font(.system(size: 72, weight: .semibold))
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                     .monospacedDigit()
-                Text(loc.t("seconds remaining"))
+                Text("seconds remaining")
                     .font(Tokens.Fonts.bodyText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
             }
@@ -34,7 +33,7 @@ struct HeartSoundRecordingView: View {
                 .frame(height: 100)
                 .padding(.horizontal, Tokens.Spacing.xxl)
 
-            Text(loc.t("Hold still and breathe normally."))
+            Text("Hold still and breathe normally.")
                 .font(Tokens.Fonts.bodyText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
 

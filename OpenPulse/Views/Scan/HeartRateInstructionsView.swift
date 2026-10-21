@@ -3,7 +3,6 @@ import SwiftUI
 struct HeartRateInstructionsView: View {
     let onStart: () -> Void
     let onCancel: () -> Void
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,7 +23,7 @@ struct HeartRateInstructionsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
-                    Text(loc.t("Heart rate check"))
+                    Text("Heart rate check")
                         .font(Tokens.Fonts.screenTitle)
                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
 
@@ -41,7 +40,7 @@ struct HeartRateInstructionsView: View {
                 .padding(.vertical, Tokens.Spacing.lg)
             }
 
-            PrimaryButton(title: loc.t("Start"), action: onStart)
+            PrimaryButton(title: "Start", action: onStart)
                 .padding(.horizontal, Tokens.Spacing.xl)
                 .padding(.bottom, Tokens.Spacing.xl)
         }
@@ -55,7 +54,7 @@ struct HeartRateInstructionsView: View {
                 .frame(width: 26, height: 26)
                 .background(Tokens.Colors.ink)
                 .clipShape(Circle())
-            Text(loc.t(text))
+            Text(text)
                 .font(Tokens.Fonts.bodyText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 .fixedSize(horizontal: false, vertical: true)

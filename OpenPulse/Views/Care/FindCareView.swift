@@ -7,7 +7,6 @@ struct FindCareView: View {
     /// Optional reading context to show a calm, specific message at the top.
     var category: HeartRateCategory? = nil
     @Environment(\.dismiss) private var dismiss
-    @ObservedObject private var loc = Localizer.shared
 
     private let resources = CareResources.forDeployment
 
@@ -16,10 +15,10 @@ struct FindCareView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
                     VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
-                        Text(loc.t(headline))
+                        Text(headline)
                             .font(Tokens.Fonts.screenTitle)
                             .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                        Text(loc.t(subhead))
+                        Text(subhead)
                             .font(Tokens.Fonts.bodyText)
                             .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -38,11 +37,11 @@ struct FindCareView: View {
                 .padding(.vertical, Tokens.Spacing.lg)
             }
             .background(Tokens.Colors.adaptiveBackground)
-            .navigationTitle(loc.t("Where to get care"))
+            .navigationTitle("Where to get care")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(loc.t("Done")) { dismiss() }
+                    Button("Done") { dismiss() }
                 }
             }
         }

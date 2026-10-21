@@ -9,7 +9,6 @@ struct InsightView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \HeartRateReading.timestamp, order: .reverse) private var readings: [HeartRateReading]
     @Query(sort: \DailyLog.date, order: .reverse) private var dailyLogs: [DailyLog]
-    @ObservedObject private var loc = Localizer.shared
 
     @State private var isSharePresented = false
 
@@ -31,7 +30,7 @@ struct InsightView: View {
                 VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
                     modelSection(model)
                     patternsSection(result)
-                    Text(loc.t("Wellness patterns from your own data, not medical advice."))
+                    Text("Wellness patterns from your own data, not medical advice.")
                         .font(Tokens.Fonts.secondaryText)
                         .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -41,11 +40,11 @@ struct InsightView: View {
                 .padding(.vertical, Tokens.Spacing.lg)
             }
             .background(Tokens.Colors.adaptiveBackground)
-            .navigationTitle(loc.t("Your insights"))
+            .navigationTitle("Your insights")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(loc.t("Done")) { dismiss() }
+                    Button("Done") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     if result.hasEnoughData || !model.effects.isEmpty {
@@ -70,7 +69,7 @@ struct InsightView: View {
 
             ListCard {
                 HStack {
-                    Text(loc.t("Usual for you right now"))
+                    Text("Usual for you right now")
                         .font(Tokens.Fonts.bodyText)
                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                     Spacer()
@@ -83,11 +82,11 @@ struct InsightView: View {
                 ListDivider()
 
                 HStack {
-                    Text(loc.t("Learned from"))
+                    Text("Learned from")
                         .font(Tokens.Fonts.bodyText)
                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                     Spacer()
-                    Text("\(model.readingsUsed) \(loc.t(model.readingsUsed == 1 ? "reading" : "readings"))")
+                    Text("\(model.readingsUsed) \(model.readingsUsed == 1 ? "reading" : "readings")")
                         .font(Tokens.Fonts.bodyText)
                         .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 }
@@ -96,7 +95,7 @@ struct InsightView: View {
                 if let error = model.typicalError {
                     ListDivider()
                     HStack {
-                        Text(loc.t("Usually accurate to within"))
+                        Text("Usually accurate to within")
                             .font(Tokens.Fonts.bodyText)
                             .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                         Spacer()
@@ -109,7 +108,7 @@ struct InsightView: View {
             }
 
             if !model.isPersonal {
-                Text(loc.t("For now this is a starting estimate from your profile. It becomes personal after 7 readings."))
+                Text("For now this is a starting estimate from your profile. It becomes personal after 7 readings.")
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -123,7 +122,7 @@ struct InsightView: View {
     private func effects(_ model: PersonalHeartModel) -> some View {
         let effects = model.effects
         VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-            Text(loc.t("What moves your heart rate"))
+            Text("What moves your heart rate")
                 .font(.headline)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                 .padding(.top, Tokens.Spacing.sm)
@@ -131,9 +130,9 @@ struct InsightView: View {
             if effects.isEmpty {
                 let remaining = max(0, PersonalHeartModel.readingsForEffects - model.readingsUsed)
                 Text(remaining > 0
-                     ? loc.t("After %d more readings with check-ins, you'll see what raises and lowers your heart rate.")
+                     ? "After %d more readings with check-ins, you'll see what raises and lowers your heart rate."
                         .replacingOccurrences(of: "%d", with: "\(remaining)")
-                     : loc.t("Nothing stands out yet. Keep checking in on different kinds of days."))
+                     : "Nothing stands out yet. Keep checking in on different kinds of days.")
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -146,7 +145,7 @@ struct InsightView: View {
                                 .font(.system(size: 17))
                                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                                 .frame(width: 24)
-                            Text(loc.t(effect.label))
+                            Text(effect.label)
                                 .font(Tokens.Fonts.bodyText)
                                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                             Spacer()
@@ -158,7 +157,7 @@ struct InsightView: View {
                         .padding(.vertical, 14)
                     }
                 }
-                Text(loc.t("Estimated by a small machine-learning model trained only on your readings and check-ins. Nothing leaves your phone."))
+                Text("Estimated by a small machine-learning model trained only on your readings and check-ins. Nothing leaves your phone.")
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -196,14 +195,14 @@ struct InsightView: View {
                         .padding(.vertical, 14)
                     }
                 }
-                Text("\(loc.t("Days analyzed")): \(result.daysAnalyzed)")
+                Text("Days analyzed: \(result.daysAnalyzed)")
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
             } else {
                 VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
                     ProgressView(value: Double(result.daysAnalyzed), total: Double(result.daysNeeded))
                         .tint(Tokens.Colors.ink)
-                    Text(loc.t("Check your heart and do a check-in on %d more days to see your patterns.")
+                    Text("Check your heart and do a check-in on %d more days to see your patterns."
                         .replacingOccurrences(of: "%d", with: "\(result.daysRemaining)"))
                         .font(Tokens.Fonts.secondaryText)
                         .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
@@ -215,11 +214,11 @@ struct InsightView: View {
 
     private func sectionHeader(_ title: String, subtitle: String?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(loc.t(title))
+            Text(title)
                 .font(Tokens.Fonts.headline)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
             if let subtitle {
-                Text(loc.t(subtitle))
+                Text(subtitle)
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
             }

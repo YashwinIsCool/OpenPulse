@@ -144,13 +144,12 @@ struct ChoiceChip: View {
 struct PillRow: View {
     let labels: [String]
     @Binding var selectedIndex: Int?
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         HStack(spacing: Tokens.Spacing.sm) {
             ForEach(Array(labels.enumerated()), id: \.offset) { index, label in
                 let isSelected = selectedIndex == index
-                ChoiceChip(label: loc.t(label), isSelected: isSelected) {
+                ChoiceChip(label: label, isSelected: isSelected) {
                     withAnimation(.easeInOut(duration: 0.12)) {
                         selectedIndex = isSelected ? nil : index
                     }
@@ -166,7 +165,6 @@ struct ScaleRow: View {
     let lowLabel: String
     let highLabel: String
     @Binding var selected: Int?
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         VStack(spacing: Tokens.Spacing.xs) {
@@ -181,9 +179,9 @@ struct ScaleRow: View {
                 }
             }
             HStack {
-                Text(loc.t(lowLabel))
+                Text(lowLabel)
                 Spacer()
-                Text(loc.t(highLabel))
+                Text(highLabel)
             }
             .font(Tokens.Fonts.secondaryText)
             .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)

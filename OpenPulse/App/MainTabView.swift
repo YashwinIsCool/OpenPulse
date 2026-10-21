@@ -4,18 +4,17 @@ import SwiftUI
 /// their history, or get help (care, learning, and settings).
 struct MainTabView: View {
     let user: User
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         TabView {
             HomeView(user: user)
-                .tabItem { Label(loc.t("Check"), systemImage: "heart") }
+                .tabItem { Label("Check", systemImage: "heart") }
 
             TrendsView(user: user)
-                .tabItem { Label(loc.t("History"), systemImage: "chart.line.uptrend.xyaxis") }
+                .tabItem { Label("History", systemImage: "chart.line.uptrend.xyaxis") }
 
             MoreView(user: user)
-                .tabItem { Label(loc.t("Help"), systemImage: "questionmark.circle") }
+                .tabItem { Label("Help", systemImage: "questionmark.circle") }
         }
         .tint(Tokens.Colors.ink)
     }

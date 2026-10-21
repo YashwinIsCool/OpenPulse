@@ -9,7 +9,6 @@ struct TrendsView: View {
 
     @Query(sort: \HeartRateReading.timestamp, order: .reverse) private var allReadings: [HeartRateReading]
     @Query(sort: \HeartSoundRecording.timestamp, order: .reverse) private var recordings: [HeartSoundRecording]
-    @ObservedObject private var loc = Localizer.shared
 
     enum Period: String, CaseIterable, Identifiable {
         case week = "Week", month = "Month", year = "Year"
@@ -46,12 +45,12 @@ struct TrendsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
-                    Text(loc.t("History"))
+                    Text("History")
                         .font(Tokens.Fonts.screenTitle)
                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
 
                     Picker("", selection: $period) {
-                        ForEach(Period.allCases) { Text(loc.t($0.rawValue)).tag($0) }
+                        ForEach(Period.allCases) { Text($0.rawValue).tag($0) }
                     }
                     .pickerStyle(.segmented)
 
@@ -67,7 +66,7 @@ struct TrendsView: View {
                     heartSounds
 
                     if !allReadings.isEmpty {
-                        SecondaryButton(title: loc.t("Share with a doctor"), icon: "doc.text") {
+                        SecondaryButton(title: "Share with a doctor", icon: "doc.text") {
                             report = HeartRecordPDF.make(user: user, readings: Array(allReadings.prefix(30)))
                                 .map(SharedFile.init)
                         }
@@ -88,10 +87,10 @@ struct TrendsView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
-            Text(loc.t("No checks yet"))
+            Text("No checks yet")
                 .font(Tokens.Fonts.headline)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-            Text(loc.t("Your readings will show up here after your first heart check."))
+            Text("Your readings will show up here after your first heart check.")
                 .font(Tokens.Fonts.bodyText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
         }
@@ -99,14 +98,14 @@ struct TrendsView: View {
 
     private var summary: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(loc.t("Average"))
+            Text("Average")
                 .font(Tokens.Fonts.secondaryText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
             (
                 Text("\(average ?? 0)")
                     .font(.system(size: 34, weight: .semibold))
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                + Text(" bpm · \(daysChecked) \(loc.t(daysChecked == 1 ? "day checked" : "days checked"))")
+                + Text(" bpm · \(daysChecked) \(daysChecked == 1 ? "day checked" : "days checked")")
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
             )
@@ -116,7 +115,7 @@ struct TrendsView: View {
     private var readingsList: some View {
         let shown = showAllReadings ? readings : Array(readings.prefix(5))
         return VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-            Text(loc.t("Readings"))
+            Text("Readings")
                 .font(Tokens.Fonts.headline)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
             ListCard {
@@ -129,7 +128,7 @@ struct TrendsView: View {
                     Button {
                         withAnimation { showAllReadings.toggle() }
                     } label: {
-                        Text(showAllReadings ? loc.t("Show fewer") : "\(loc.t("Show all")) (\(readings.count))")
+                        Text(showAllReadings ? "Show fewer" : "Show all (\(readings.count))")
                             .font(Tokens.Fonts.bodyText)
                             .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -153,7 +152,7 @@ struct TrendsView: View {
                 .font(Tokens.Fonts.bodyText.weight(.semibold))
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                 .monospacedDigit()
-            Text(loc.t(category.shortName))
+            Text(category.shortName)
                 .font(Tokens.Fonts.secondaryText)
                 .foregroundStyle(category.statusColor)
                 .frame(minWidth: 70, alignment: .trailing)
@@ -163,11 +162,11 @@ struct TrendsView: View {
 
     private var heartSounds: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-            Text(loc.t("Heart sounds"))
+            Text("Heart sounds")
                 .font(Tokens.Fonts.headline)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
             if recordings.isEmpty {
-                Text(loc.t("Recordings you make will appear here, ready to play or share."))
+                Text("Recordings you make will appear here, ready to play or share.")
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
             } else {

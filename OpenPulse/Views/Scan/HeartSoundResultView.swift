@@ -7,7 +7,6 @@ struct HeartSoundResultView: View {
     let onDismiss: () -> Void
 
     @State private var isSharePresented = false
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         ScrollView {
@@ -26,25 +25,25 @@ struct HeartSoundResultView: View {
                 }
 
                 VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
-                    Text(loc.t("Heart sound recorded"))
+                    Text("Heart sound recorded")
                         .font(Tokens.Fonts.screenTitle)
                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                    Text(loc.t("Listen back, keep it in your history, or share it with a doctor."))
+                    Text("Listen back, keep it in your history, or share it with a doctor.")
                         .font(Tokens.Fonts.bodyText)
                         .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 }
 
                 HeartSoundPlayerView(url: audioURL)
 
-                Text(loc.t("This app records your heart sound but doesn't analyze or diagnose it. A doctor can listen to it for you."))
+                Text("This app records your heart sound but doesn't analyze or diagnose it. A doctor can listen to it for you.")
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 VStack(spacing: Tokens.Spacing.sm) {
-                    PrimaryButton(title: loc.t("Save recording"), action: onSave)
-                    SecondaryButton(title: loc.t("Share with a doctor"), icon: "square.and.arrow.up") { isSharePresented = true }
-                    SecondaryButton(title: loc.t("Record again"), action: onNewScan)
+                    PrimaryButton(title: "Save recording", action: onSave)
+                    SecondaryButton(title: "Share with a doctor", icon: "square.and.arrow.up") { isSharePresented = true }
+                    SecondaryButton(title: "Record again", action: onNewScan)
                 }
 
                 DisclaimerFooter(text: "Educational use only · Not medical advice. If you have any concerns about your heart, talk to a healthcare provider.")

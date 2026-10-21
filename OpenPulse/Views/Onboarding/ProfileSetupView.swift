@@ -11,7 +11,6 @@ struct ProfileSetupView: View {
     @EnvironmentObject private var settings: AppSettings
     @Query private var users: [User]
     @StateObject private var permissions = PermissionsManager()
-    @ObservedObject private var loc = Localizer.shared
 
     private enum Question: Int, CaseIterable {
         case name, age, sex, activity, reminders
@@ -34,10 +33,10 @@ struct ProfileSetupView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
                     VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
-                        Text(loc.t(title))
+                        Text(title)
                             .font(Tokens.Fonts.screenTitle)
                             .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                        Text(loc.t(why))
+                        Text(why)
                             .font(Tokens.Fonts.bodyText)
                             .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -49,7 +48,7 @@ struct ProfileSetupView: View {
             }
             .scrollDismissesKeyboard(.interactively)
 
-            PrimaryButton(title: loc.t(question == .reminders ? "Finish" : "Continue")) {
+            PrimaryButton(title: question == .reminders ? "Finish" : "Continue") {
                 advance()
             }
             .padding(.horizontal, Tokens.Spacing.xl)
@@ -91,7 +90,7 @@ struct ProfileSetupView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Question \(question.rawValue + 1) of \(Question.allCases.count)")
 
-            Button(loc.t("Skip")) { skip() }
+            Button("Skip") { skip() }
                 .font(.body.weight(.medium))
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 .opacity(question == .reminders ? 0 : 1)
@@ -125,7 +124,7 @@ struct ProfileSetupView: View {
     private var answers: some View {
         switch question {
         case .name:
-            TextField(loc.t("First name"), text: $name)
+            TextField("First name", text: $name)
                 .font(.system(.title2))
                 .textInputAutocapitalization(.words)
                 .submitLabel(.next)
@@ -143,7 +142,7 @@ struct ProfileSetupView: View {
                     .multilineTextAlignment(.trailing)
                     .frame(width: 96)
                     .onChange(of: age) { _, new in age = String(new.filter(\.isNumber).prefix(3)) }
-                Text(loc.t("years"))
+                Text("years")
                     .font(Tokens.Fonts.headline)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
             }
@@ -153,7 +152,7 @@ struct ProfileSetupView: View {
         case .sex:
             VStack(spacing: Tokens.Spacing.sm) {
                 ForEach(BiologicalSex.allCases, id: \.self) { option in
-                    OptionRow(title: loc.t(option.rawValue), detail: nil, isSelected: sex == option) {
+                    OptionRow(title: option.rawValue, detail: nil, isSelected: sex == option) {
                         sex = option
                     }
                 }
@@ -162,7 +161,7 @@ struct ProfileSetupView: View {
         case .activity:
             VStack(spacing: Tokens.Spacing.sm) {
                 ForEach(ActivityLevel.answerable, id: \.self) { option in
-                    OptionRow(title: loc.t(option.title), detail: option.detail.map(loc.t), isSelected: activity == option) {
+                    OptionRow(title: option.title, detail: option.detail, isSelected: activity == option) {
                         activity = option
                     }
                 }
@@ -170,10 +169,10 @@ struct ProfileSetupView: View {
 
         case .reminders:
             VStack(spacing: Tokens.Spacing.sm) {
-                OptionRow(title: loc.t("Yes, remind me"), detail: nil, isSelected: remindersOn == true) {
+                OptionRow(title: "Yes, remind me", detail: nil, isSelected: remindersOn == true) {
                     remindersOn = true
                 }
-                OptionRow(title: loc.t("No thanks"), detail: nil, isSelected: remindersOn == false) {
+                OptionRow(title: "No thanks", detail: nil, isSelected: remindersOn == false) {
                     remindersOn = false
                 }
             }

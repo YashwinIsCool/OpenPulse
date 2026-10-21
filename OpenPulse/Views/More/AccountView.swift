@@ -3,7 +3,6 @@ import SwiftUI
 /// Edit the onboarding answers. Changes save as you go.
 struct AccountView: View {
     let user: User
-    @ObservedObject private var loc = Localizer.shared
 
     @State private var name: String = ""
     @State private var age: String = ""
@@ -13,13 +12,13 @@ struct AccountView: View {
     var body: some View {
         Form {
             Section {
-                TextField(loc.t("First name"), text: $name)
+                TextField("First name", text: $name)
                     .textInputAutocapitalization(.words)
                     .onChange(of: name) { _, new in user.name = new.trimmingCharacters(in: .whitespacesAndNewlines) }
                 HStack {
-                    Text(loc.t("Age"))
+                    Text("Age")
                     Spacer()
-                    TextField(loc.t("Not set"), text: $age)
+                    TextField("Not set", text: $age)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 100)
@@ -29,21 +28,21 @@ struct AccountView: View {
                             user.age = Int(digits).flatMap { (5...120).contains($0) ? $0 : nil }
                         }
                 }
-                Picker(loc.t("Sex"), selection: $sex) {
-                    ForEach(BiologicalSex.allCases, id: \.self) { Text(loc.t($0.rawValue)).tag($0) }
+                Picker("Sex", selection: $sex) {
+                    ForEach(BiologicalSex.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }
                 .onChange(of: sex) { _, new in user.sex = new }
-                Picker(loc.t("Exercise"), selection: $activity) {
-                    ForEach(ActivityLevel.allCases, id: \.self) { Text(loc.t($0.title)).tag($0) }
+                Picker("Exercise", selection: $activity) {
+                    ForEach(ActivityLevel.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 .onChange(of: activity) { _, new in user.activityLevel = new }
             } footer: {
-                Text(loc.t("These answers give your readings and insights context. They stay on this phone."))
+                Text("These answers give your readings and insights context. They stay on this phone.")
             }
         }
         .scrollContentBackground(.hidden)
         .background(Tokens.Colors.adaptiveBackground)
-        .navigationTitle(loc.t("Account"))
+        .navigationTitle("Account")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             name = user.name

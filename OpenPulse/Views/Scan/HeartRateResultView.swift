@@ -10,7 +10,6 @@ struct HeartRateResultView: View {
     let hrvMs: Double?
     let onSave: () -> Void
 
-    @ObservedObject private var loc = Localizer.shared
     @Query(sort: \HeartRateReading.timestamp, order: .reverse) private var pastReadings: [HeartRateReading]
     @Query(sort: \DailyLog.date, order: .reverse) private var logs: [DailyLog]
 
@@ -37,7 +36,7 @@ struct HeartRateResultView: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Tokens.Spacing.sm) {
-                PrimaryButton(title: loc.t("Save & Continue"), action: onSave)
+                PrimaryButton(title: "Save & Continue", action: onSave)
                 DisclaimerFooter()
             }
             .padding(.horizontal, Tokens.Spacing.xl)
@@ -49,7 +48,7 @@ struct HeartRateResultView: View {
 
     private var reading: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
-            Text(loc.t("Your heart rate"))
+            Text("Your heart rate")
                 .font(Tokens.Fonts.secondaryText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
             HStack(alignment: .lastTextBaseline, spacing: Tokens.Spacing.sm) {
@@ -60,7 +59,7 @@ struct HeartRateResultView: View {
                     .font(Tokens.Fonts.headline)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
             }
-            Text(loc.t(category.headline))
+            Text(category.headline)
                 .font(Tokens.Fonts.headline)
                 .foregroundStyle(category.statusColor)
         }
@@ -68,18 +67,18 @@ struct HeartRateResultView: View {
 
     private var guidance: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
-            Text(loc.t(category.plainGuidance))
+            Text(category.plainGuidance)
                 .font(Tokens.Fonts.bodyText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             if user.activityLevel == .veryActive && bpm < 50 && category != .low {
-                Text(loc.t("A resting rate in the 40s is common for very active people."))
+                Text("A resting rate in the 40s is common for very active people.")
                     .font(Tokens.Fonts.bodyText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let hrvMs {
-                Text("\(loc.t("Heart rate variability")): \(Int(hrvMs)) ms")
+                Text("Heart rate variability: \(Int(hrvMs)) ms")
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
             }
@@ -102,7 +101,7 @@ struct HeartRateResultView: View {
         }()
         return VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
             HStack(alignment: .firstTextBaseline) {
-                Label(loc.t("Usual for you right now"), systemImage: "person.crop.circle")
+                Label("Usual for you right now", systemImage: "person.crop.circle")
                     .font(Tokens.Fonts.secondaryText.weight(.semibold))
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 Spacer()
@@ -110,13 +109,13 @@ struct HeartRateResultView: View {
                     .font(Tokens.Fonts.bodyText.weight(.semibold))
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
             }
-            Text(loc.t(comparisonText))
+            Text(comparisonText)
                 .font(Tokens.Fonts.bodyText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                 .fixedSize(horizontal: false, vertical: true)
             Text(model.isPersonal
-                 ? loc.t("Learned on this phone from %d of your readings.").replacingOccurrences(of: "%d", with: "\(model.readingsUsed)")
-                 : loc.t("A starting estimate from your profile. It becomes personal after 7 readings."))
+                 ? "Learned on this phone from %d of your readings.".replacingOccurrences(of: "%d", with: "\(model.readingsUsed)")
+                 : "A starting estimate from your profile. It becomes personal after 7 readings.")
                 .font(Tokens.Fonts.secondaryText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -135,7 +134,7 @@ struct HeartRateResultView: View {
 
     private var careOptions: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-            Text(loc.t("Where to go"))
+            Text("Where to go")
                 .font(Tokens.Fonts.headline)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
 

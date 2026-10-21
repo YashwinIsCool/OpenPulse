@@ -3,13 +3,12 @@ import SwiftUI
 struct BreathingLibraryView: View {
     let user: User
     @Environment(\.dismiss) private var dismiss
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
                 HStack {
-                    Text(loc.t("Breathing"))
+                    Text("Breathing")
                         .font(Tokens.Fonts.screenTitle)
                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                     Spacer()
@@ -25,7 +24,7 @@ struct BreathingLibraryView: View {
                 }
                 .padding(.top, Tokens.Spacing.sm)
 
-                Text(loc.t("Slow breathing can help your heart settle. Pick one and follow the circle."))
+                Text("Slow breathing can help your heart settle. Pick one and follow the circle.")
                     .font(Tokens.Fonts.bodyText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
 
@@ -35,10 +34,10 @@ struct BreathingLibraryView: View {
                         NavigationLink(destination: BreathingDetailView(user: user, exerciseType: type)) {
                             HStack(spacing: Tokens.Spacing.md) {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(loc.t(type.rawValue))
+                                    Text(type.rawValue)
                                         .font(Tokens.Fonts.bodyText)
                                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                                    Text("\(loc.t(type.subtitle)) · \(type.durationSeconds / 60) min")
+                                    Text("\(type.subtitle) · \(type.durationSeconds / 60) min")
                                         .font(Tokens.Fonts.secondaryText)
                                         .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                                 }

@@ -74,5 +74,5 @@ heart-rate flow uses a synthetic signal so the full experience can be tried.
 
 - **Core/** — design tokens, app settings, app name
 - **Models/** — SwiftData models (user profile, readings, check-ins, heart-sound recordings, breathing sessions)
-- **Services/** — camera capture, signal processing, personal heart model, insight patterns, care resources, localization (English, Hindi, Tamil)
+- **Services/** — camera capture, signal processing, personal heart model, insight patterns, care resources
 - **Views/** — onboarding quiz, Check, History, Help, guided check, breathing, insights, and shared components

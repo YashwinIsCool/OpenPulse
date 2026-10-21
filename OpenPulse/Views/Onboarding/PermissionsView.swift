@@ -3,15 +3,14 @@ import SwiftUI
 struct PermissionsView: View {
     @ObservedObject var permissions: PermissionsManager
     let onNext: () -> Void
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.xxl) {
             VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
-                Text(loc.t("Allow access"))
+                Text("Allow access")
                     .font(Tokens.Fonts.screenTitle)
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                Text(loc.t("Everything is measured on this phone. No photos, video, or audio are uploaded."))
+                Text("Everything is measured on this phone. No photos, video, or audio are uploaded.")
                     .font(Tokens.Fonts.bodyText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -32,13 +31,13 @@ struct PermissionsView: View {
                     granted: permissions.notificationsGranted) { permissions.requestNotifications() }
             }
 
-            Text(loc.t("You can skip these and allow them later."))
+            Text("You can skip these and allow them later.")
                 .font(Tokens.Fonts.secondaryText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
 
             Spacer()
 
-            PrimaryButton(title: loc.t("Continue"), action: onNext)
+            PrimaryButton(title: "Continue", action: onNext)
                 .padding(.bottom, Tokens.Spacing.xl)
         }
         .padding(.horizontal, Tokens.Spacing.xl)
@@ -52,10 +51,10 @@ struct PermissionsView: View {
                 .frame(width: 24)
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 2) {
-                Text(loc.t(title))
+                Text(title)
                     .font(Tokens.Fonts.bodyText.weight(.semibold))
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                Text(loc.t(detail))
+                Text(detail)
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -67,7 +66,7 @@ struct PermissionsView: View {
                     .foregroundStyle(Tokens.Colors.statusGood)
                     .accessibilityLabel("Allowed")
             } else {
-                Button(loc.t("Allow"), action: action)
+                Button("Allow", action: action)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                     .padding(.horizontal, 14)

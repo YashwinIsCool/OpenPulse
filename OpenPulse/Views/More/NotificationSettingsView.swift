@@ -3,12 +3,11 @@ import SwiftUI
 struct NotificationSettingsView: View {
     @EnvironmentObject private var settings: AppSettings
     @StateObject private var permissions = PermissionsManager()
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         Form {
             Section {
-                Toggle(loc.t("Allow reminders"), isOn: $settings.notificationsEnabled)
+                Toggle("Allow reminders", isOn: $settings.notificationsEnabled)
                     .onChange(of: settings.notificationsEnabled) { _, enabled in
                         if enabled {
                             permissions.requestNotifications { granted in
@@ -22,26 +21,26 @@ struct NotificationSettingsView: View {
 
             if settings.notificationsEnabled {
                 Section {
-                    Toggle(loc.t("Morning heart check"), isOn: $settings.morningCheckEnabled)
+                    Toggle("Morning heart check", isOn: $settings.morningCheckEnabled)
                     if settings.morningCheckEnabled {
-                        DatePicker(loc.t("Time"), selection: $settings.morningTime, displayedComponents: .hourAndMinute)
+                        DatePicker("Time", selection: $settings.morningTime, displayedComponents: .hourAndMinute)
                     }
                 }
                 Section {
-                    Toggle(loc.t("Evening breathing"), isOn: $settings.eveningBreathingEnabled)
+                    Toggle("Evening breathing", isOn: $settings.eveningBreathingEnabled)
                     if settings.eveningBreathingEnabled {
-                        DatePicker(loc.t("Time"), selection: $settings.eveningTime, displayedComponents: .hourAndMinute)
+                        DatePicker("Time", selection: $settings.eveningTime, displayedComponents: .hourAndMinute)
                     }
                 }
                 Section {
-                    Toggle(loc.t("Weekly insights"), isOn: $settings.weeklyInsightEnabled)
+                    Toggle("Weekly insights", isOn: $settings.weeklyInsightEnabled)
                 }
             }
         }
         .tint(Tokens.Colors.statusGood)
         .scrollContentBackground(.hidden)
         .background(Tokens.Colors.adaptiveBackground)
-        .navigationTitle(loc.t("Notifications"))
+        .navigationTitle("Notifications")
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: settings.morningCheckEnabled) { _, _ in reschedule() }
         .onChange(of: settings.morningTime) { _, _ in reschedule() }

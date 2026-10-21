@@ -7,14 +7,13 @@ import SwiftUI
 struct HeartRateRecordingView: View {
     @ObservedObject var camera: PPGCameraManager
     let onCancel: () -> Void
-    @ObservedObject private var loc = Localizer.shared
 
     var body: some View {
         VStack(spacing: Tokens.Spacing.xl) {
             HStack {
                 Spacer()
                 Button(action: onCancel) {
-                    Text(loc.t("Cancel"))
+                    Text("Cancel")
                         .font(.body.weight(.medium))
                         .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                 }
@@ -27,11 +26,11 @@ struct HeartRateRecordingView: View {
             fingerSwatch
 
             VStack(spacing: Tokens.Spacing.sm) {
-                Text(loc.t(instruction.title))
+                Text(instruction.title)
                     .font(Tokens.Fonts.headline)
                     .foregroundStyle(instruction.color)
                     .multilineTextAlignment(.center)
-                Text(loc.t(instruction.detail))
+                Text(instruction.detail)
                     .font(Tokens.Fonts.bodyText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                     .multilineTextAlignment(.center)
@@ -76,7 +75,7 @@ struct HeartRateRecordingView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(loc.t(instruction.title))
+        .accessibilityLabel(instruction.title)
     }
 
     // MARK: - What to do now

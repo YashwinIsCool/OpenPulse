@@ -13,7 +13,6 @@ struct HomeView: View {
 
     @Query(sort: \HeartRateReading.timestamp, order: .reverse) private var readings: [HeartRateReading]
     @Query(sort: \HeartSoundRecording.timestamp, order: .reverse) private var heartSoundRecordings: [HeartSoundRecording]
-    @ObservedObject private var loc = Localizer.shared
 
     @State private var activeSheet: HomeSheet?
 
@@ -68,7 +67,7 @@ struct HomeView: View {
             Text(Date.now, format: .dateTime.weekday(.wide).month(.wide).day())
                 .font(Tokens.Fonts.secondaryText)
                 .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-            Text(user.name.isEmpty ? loc.t("Hello") : "\(loc.t("Hi")), \(user.name)")
+            Text(user.name.isEmpty ? "Hello" : "Hi, \(user.name)")
                 .font(Tokens.Fonts.screenTitle)
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
         }
@@ -79,16 +78,16 @@ struct HomeView: View {
     private var checkBlock: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.lg) {
             VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
-                Text(loc.t(checkedToday ? "You checked today" : "Check your heart"))
+                Text(checkedToday ? "You checked today" : "Check your heart")
                     .font(Tokens.Fonts.headline)
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                Text(loc.t("30 seconds. Rest a fingertip on the back camera."))
+                Text("30 seconds. Rest a fingertip on the back camera.")
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
             }
 
             PrimaryButton(
-                title: loc.t(checkedToday ? "Check again" : "Start check"),
+                title: checkedToday ? "Check again" : "Start check",
                 icon: "heart.fill"
             ) {
                 activeSheet = .heartRate
@@ -111,13 +110,13 @@ struct HomeView: View {
     private func lastCheckLine(_ reading: HeartRateReading) -> some View {
         let category = HeartRateCategory.categorize(bpm: reading.bpm, activity: user.activityLevel)
         return (
-            Text("\(loc.t("Last check")): ")
+            Text("Last check: ")
                 .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
             + Text("\(reading.bpm) bpm")
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
             + Text(" · \(dayLabel(reading.timestamp)) · ")
                 .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-            + Text(loc.t(category.shortName))
+            + Text(category.shortName)
                 .foregroundStyle(category.statusColor)
         )
         .font(Tokens.Fonts.secondaryText)
@@ -125,8 +124,8 @@ struct HomeView: View {
 
     private func dayLabel(_ date: Date) -> String {
         let cal = Calendar.current
-        if cal.isDateInToday(date) { return loc.t("today") }
-        if cal.isDateInYesterday(date) { return loc.t("yesterday") }
+        if cal.isDateInToday(date) { return "today" }
+        if cal.isDateInYesterday(date) { return "yesterday" }
         return date.formatted(.dateTime.month(.abbreviated).day())
     }
 
@@ -181,11 +180,11 @@ struct HomeView: View {
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
                     .frame(width: 24)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(loc.t(title))
+                    Text(title)
                         .font(Tokens.Fonts.bodyText)
                         .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
                     if let subtitle {
-                        Text(loc.t(subtitle))
+                        Text(subtitle)
                             .font(Tokens.Fonts.secondaryText)
                             .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
                     }
