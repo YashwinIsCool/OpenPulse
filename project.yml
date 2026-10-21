@@ -1,4 +1,4 @@
-name: StethoAI
+name: OpenPulse
 options:
   bundleIdPrefix: com.stethoai
   deploymentTarget:
@@ -14,23 +14,23 @@ settings:
     TARGETED_DEVICE_FAMILY: "1"
 
 targets:
-  StethoAI:
+  OpenPulse:
     type: application
     platform: iOS
     deploymentTarget: "17.0"
     sources:
-      - path: StethoAI
+      - path: OpenPulse
     info:
-      path: StethoAI/Resources/Info.plist
+      path: OpenPulse/Resources/Info.plist
       properties:
-        CFBundleDisplayName: StethoAI
+        CFBundleDisplayName: OpenPulse
         UILaunchScreen: {}
         UIRequiredDeviceCapabilities: [armv7]
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        NSCameraUsageDescription: "StethoAI uses your camera to measure your heart rate by detecting subtle color changes in your fingertip (PPG). No images or video are stored."
-        NSMicrophoneUsageDescription: "StethoAI uses your microphone to record heart sounds when you hold your phone against your chest. Recordings stay on your device unless you choose to share them."
-        NSUserNotificationsUsageDescription: "StethoAI sends reminders for your daily heart check, breathing exercises, and weekly insights."
+        NSCameraUsageDescription: "OpenPulse uses your camera to measure your heart rate by detecting subtle color changes in your fingertip (PPG). No images or video are stored."
+        NSMicrophoneUsageDescription: "OpenPulse uses your microphone to record heart sounds when you hold your phone against your chest. Recordings stay on your device unless you choose to share them."
+        NSUserNotificationsUsageDescription: "OpenPulse sends reminders for your daily heart check, breathing exercises, and weekly insights."
         ITSAppUsesNonExemptEncryption: false
     settings:
       base:
