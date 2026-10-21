@@ -21,12 +21,17 @@ enum HeartRateSignalProcessor {
     /// Spectral peak-to-median power needed for a final reading.
     private static let minSNRRed = 15.0
     private static let minSNRGreen = 40.0
+    /// If a second, different rhythm (more than 5 bpm away) is at least this strong
+    /// relative to the top one, the signal is too close to call.
+    private static let maxRivalRatio = 0.8
     /// Live (6-second window) strength that counts as a clear pulse.
     static let liveGoodSNR = 10.0
 
     struct Analysis {
         let spectralBPM: Double
         let snr: Double
+        /// Strength of the strongest different rhythm, relative to the top one (0–1).
+        let rivalRatio: Double
         let beatBPM: Double?
         let beatIntervals: [Double]   // seconds
     }
@@ -53,6 +58,7 @@ enum HeartRateSignalProcessor {
     private static func reading(t: [Double], x: [Double], minSNR: Double) -> (bpm: Int, hrvMs: Double?)? {
         guard let a = analyze(t: t, x: x, needBeats: true),
               a.snr >= minSNR,
+              a.rivalRatio < maxRivalRatio,
               let beat = a.beatBPM,
               abs(beat - a.spectralBPM) <= maxDisagreement else { return nil }
         let bpm = Int(((a.spectralBPM + beat) / 2).rounded())
@@ -68,8 +74,8 @@ enum HeartRateSignalProcessor {
         if y.count > edge * 4 { y = Array(y[edge..<(y.count - edge)]) }
         guard y.count > 60 else { return nil }
 
-        let (spectral, snr) = dominantFrequency(y)
-        guard needBeats else { return Analysis(spectralBPM: spectral, snr: snr, beatBPM: nil, beatIntervals: []) }
+        let (spectral, snr, rival) = dominantFrequency(y)
+        guard needBeats else { return Analysis(spectralBPM: spectral, snr: snr, rivalRatio: rival, beatBPM: nil, beatIntervals: []) }
 
         let intervals = beatIntervals(y, expectedBPM: spectral)
         var beat: Double?
@@ -77,7 +83,7 @@ enum HeartRateSignalProcessor {
             let sorted = intervals.sorted()
             beat = 60 / sorted[sorted.count / 2]
         }
-        return Analysis(spectralBPM: spectral, snr: snr, beatBPM: beat, beatIntervals: intervals)
+        return Analysis(spectralBPM: spectral, snr: snr, rivalRatio: rival, beatBPM: beat, beatIntervals: intervals)
     }
 
     /// Drops frames that arrive within 5 ms of the previous one (duplicates).
@@ -139,14 +145,16 @@ enum HeartRateSignalProcessor {
         return y
     }
 
-    /// Strongest frequency between 40 and 180 bpm (0.5 bpm steps, Hann window),
-    /// and how far it stands above the typical level (peak / median power).
-    private static func dominantFrequency(_ y: [Double]) -> (bpm: Double, snr: Double) {
+    /// Strongest frequency between 40 and 180 bpm (0.5 bpm steps, Hann window), how
+    /// far it stands above the typical level (peak / median power), and how strong
+    /// the best rival rhythm more than 5 bpm away is (rival / peak power).
+    private static func dominantFrequency(_ y: [Double]) -> (bpm: Double, snr: Double, rivalRatio: Double) {
         let n = y.count
         let windowed: [Double] = (0..<n).map { i in
             y[i] * (0.5 - 0.5 * cos(2 * Double.pi * Double(i) / Double(n - 1)))
         }
         var powers: [Double] = []
+        var bpmsTried: [Double] = []
         var bestBPM = minBPM, bestPower = -1.0
         var bpm = minBPM
         while bpm <= maxBPM {
@@ -158,12 +166,14 @@ enum HeartRateSignalProcessor {
             }
             let p = re * re + im * im
             powers.append(p)
+            bpmsTried.append(bpm)
             if p > bestPower { bestPower = p; bestBPM = bpm }
             bpm += 0.5
         }
         let sorted = powers.sorted()
         let median = sorted[sorted.count / 2]
-        return (bestBPM, median > 0 ? bestPower / median : 0)
+        let rival = zip(bpmsTried, powers).filter { abs($0.0 - bestBPM) > 5 }.map(\.1).max() ?? 0
+        return (bestBPM, median > 0 ? bestPower / median : 0, bestPower > 0 ? rival / bestPower : 1)
     }
 
     /// Times between detected beats (local maxima at least 60% of a period apart).
