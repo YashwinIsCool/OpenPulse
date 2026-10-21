@@ -478,7 +478,7 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
         isExtending = false
         stopSessionAndTorch()
 
-        // Demo mode returns believable values so marketing screenshots look real.
+        // Demo mode returns believable values so demo screenshots look real.
         if AppSettings.shared.isDemoMode {
             onFinished?(Int.random(in: 66...80), Double.random(in: 40...56))
             return

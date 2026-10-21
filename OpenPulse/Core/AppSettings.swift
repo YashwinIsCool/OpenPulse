@@ -37,7 +37,7 @@ final class AppSettings: ObservableObject {
     }
 
     /// When on, the app fills with realistic sample data and heart-rate readings
-    /// return believable values — used to capture clean marketing screenshots.
+    /// return believable values — used for demo screenshots and video.
     @Published var isDemoMode: Bool {
         didSet { defaults.set(isDemoMode, forKey: Keys.isDemoMode) }
     }

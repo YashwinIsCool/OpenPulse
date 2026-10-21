@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// Seeds and clears realistic demo data so clean marketing screenshots can be
+/// Seeds and clears realistic demo data so clean demo screenshots can be
 /// captured on the real app (a populated streak, history, insights, etc.).
 /// Not shipped-facing — toggled from the More tab's Developer section.
 enum HeartSampleData {
