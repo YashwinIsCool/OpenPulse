@@ -6,7 +6,7 @@ import SwiftData
 /// once a full day is skipped (checked both reactively and passively on launch).
 enum StreakManager {
     /// The day's plan is complete when the heart rate check, stress log, and
-    /// breathing session are all done — plus the heart sound scan on its weekly day.
+    /// breathing session are all done.
     static func allDailyTasksComplete(context: ModelContext, user: User, asOf date: Date = .now) -> Bool {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: date)
@@ -28,10 +28,7 @@ enum StreakManager {
         ))) ?? []
         let hasCheckIn = todaysLogs.contains { $0.hasCheckIn }
 
-        let isHeartSoundDay = calendar.component(.weekday, from: date) == user.heartSoundWeekday
-        let hasHeartSound = !isHeartSoundDay || hasAny(HeartSoundRecording.self, #Predicate { $0.timestamp >= start && $0.timestamp < end })
-
-        return hasHeartRate && hasCheckIn && hasBreathing && hasHeartSound
+        return hasHeartRate && hasCheckIn && hasBreathing
     }
 
     /// Call after any daily task completes: bumps the streak only once the full

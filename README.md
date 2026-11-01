@@ -53,7 +53,7 @@ Heart-rate detection itself is signal processing, not machine learning.
 ## Privacy
 
 No account, no server. The camera image becomes brightness numbers on the phone;
-no photos, video, or audio are uploaded. Everything is stored locally with SwiftData.
+no photos or video are saved or uploaded. Everything is stored locally with SwiftData.
 
 ## Building
 
@@ -67,12 +67,12 @@ open OpenPulse.xcodeproj
 ```
 
 The `.xcodeproj` is generated from `project.yml` and is git-ignored, so edit
-`project.yml` for build settings. On the simulator (no camera or microphone), the
+`project.yml` for build settings. On the simulator (no camera), the
 heart-rate flow uses a synthetic signal so the full experience can be tried.
 
 ## Project layout
 
 - **Core/** — design tokens, app settings, app name
-- **Models/** — SwiftData models (user profile, readings, check-ins, heart-sound recordings, breathing sessions)
+- **Models/** — SwiftData models (user profile, readings, check-ins, breathing sessions)
 - **Services/** — camera capture, signal processing, personal heart model, insight patterns, care resources
 - **Views/** — onboarding quiz, Check, History, Help, guided check, breathing, insights, and shared components

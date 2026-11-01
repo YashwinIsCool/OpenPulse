@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 private enum HomeSheet: Identifiable {
-    case heartRate, heartSound, breathing, insights, dailyPlan, care
+    case heartRate, breathing, insights, dailyPlan, care
     var id: Int { hashValue }
 }
 
@@ -12,7 +12,6 @@ struct HomeView: View {
     let user: User
 
     @Query(sort: \HeartRateReading.timestamp, order: .reverse) private var readings: [HeartRateReading]
-    @Query(sort: \HeartSoundRecording.timestamp, order: .reverse) private var heartSoundRecordings: [HeartSoundRecording]
 
     @State private var activeSheet: HomeSheet?
 
@@ -20,11 +19,6 @@ struct HomeView: View {
 
     private var checkedToday: Bool {
         lastReading.map { Calendar.current.isDateInToday($0.timestamp) } ?? false
-    }
-
-    private var heartSoundSuggestedToday: Bool {
-        Calendar.current.component(.weekday, from: .now) == user.heartSoundWeekday
-            && !heartSoundRecordings.contains { Calendar.current.isDateInToday($0.timestamp) }
     }
 
     var body: some View {
@@ -45,8 +39,6 @@ struct HomeView: View {
                 switch sheet {
                 case .heartRate:
                     HeartRateFlowView(user: user)
-                case .heartSound:
-                    HeartSoundFlowView(user: user)
                 case .breathing:
                     NavigationStack { BreathingLibraryView(user: user) }
                 case .insights:
@@ -139,14 +131,6 @@ struct HomeView: View {
             divider
             listRow(icon: "wind", title: "Breathing exercise", subtitle: nil) {
                 activeSheet = .breathing
-            }
-            divider
-            listRow(
-                icon: "waveform",
-                title: "Record heart sound",
-                subtitle: heartSoundSuggestedToday ? "Suggested today" : nil
-            ) {
-                activeSheet = .heartSound
             }
             divider
             listRow(icon: "lightbulb", title: "Your insights", subtitle: nil) {

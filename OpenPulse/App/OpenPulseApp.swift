@@ -9,7 +9,6 @@ struct OpenPulseApp: App {
         let schema = Schema([
             User.self,
             HeartRateReading.self,
-            HeartSoundRecording.self,
             BreathingSession.self,
             DailyLog.self,
             Insight.self

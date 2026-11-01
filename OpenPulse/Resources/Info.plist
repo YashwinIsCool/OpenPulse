@@ -24,8 +24,6 @@
 	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>OpenPulse uses your camera to measure your heart rate by detecting subtle color changes in your fingertip (PPG). No images or video are stored.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>OpenPulse uses your microphone to record heart sounds when you hold your phone against your chest. Recordings stay on your device unless you choose to share them.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>OpenPulse sends reminders for your daily heart check, breathing exercises, and weekly insights.</string>
 	<key>UILaunchScreen</key>

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Wraps UIActivityViewController so any screen can present the native share sheet
-/// (used to share heart-sound recordings and results with a doctor).
+/// (used to share the heart record PDF with a doctor).
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
 

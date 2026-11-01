@@ -46,7 +46,6 @@ final class User {
     var createdAt: Date
     var streakCount: Int
     var lastActiveDate: Date?
-    var heartSoundWeekday: Int // 1 = Sunday ... 7 = Saturday, matches Calendar.component(.weekday)
     // Default value keeps SwiftData's automatic migration working for existing installs.
     var activityLevelRaw: String = ActivityLevel.notSet.rawValue
 
@@ -66,8 +65,7 @@ final class User {
         sex: BiologicalSex = .preferNotToSay,
         createdAt: Date = .now,
         streakCount: Int = 0,
-        lastActiveDate: Date? = nil,
-        heartSoundWeekday: Int = 2
+        lastActiveDate: Date? = nil
     ) {
         self.name = name
         self.age = age
@@ -75,6 +73,5 @@ final class User {
         self.createdAt = createdAt
         self.streakCount = streakCount
         self.lastActiveDate = lastActiveDate
-        self.heartSoundWeekday = heartSoundWeekday
     }
 }

@@ -22,10 +22,6 @@ struct PermissionsView: View {
                     detail: "Measures your heart rate from tiny color changes in your fingertip.",
                     granted: permissions.cameraGranted) { permissions.requestCamera() }
                 ListDivider()
-                row(icon: "mic", title: "Microphone",
-                    detail: "Records your heart sound when you hold the phone to your chest.",
-                    granted: permissions.microphoneGranted) { permissions.requestMicrophone() }
-                ListDivider()
                 row(icon: "bell", title: "Notifications",
                     detail: "Gentle reminders for your daily check.",
                     granted: permissions.notificationsGranted) { permissions.requestNotifications() }

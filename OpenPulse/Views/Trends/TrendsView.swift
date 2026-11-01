@@ -3,12 +3,11 @@ import SwiftData
 import Charts
 
 /// The History tab: how readings have moved over time, every reading in a plain
-/// list, saved heart sounds, and a one-tap heart record to show a doctor.
+/// list, and a one-tap heart record to show a doctor.
 struct TrendsView: View {
     let user: User
 
     @Query(sort: \HeartRateReading.timestamp, order: .reverse) private var allReadings: [HeartRateReading]
-    @Query(sort: \HeartSoundRecording.timestamp, order: .reverse) private var recordings: [HeartSoundRecording]
 
     enum Period: String, CaseIterable, Identifiable {
         case week = "Week", month = "Month", year = "Year"
@@ -24,7 +23,6 @@ struct TrendsView: View {
 
     @State private var period: Period = .month
     @State private var showAllReadings = false
-    @State private var selectedRecording: HeartSoundRecording?
     @State private var report: SharedFile?
 
     private var readings: [HeartRateReading] {
@@ -63,8 +61,6 @@ struct TrendsView: View {
                         readingsList
                     }
 
-                    heartSounds
-
                     if !allReadings.isEmpty {
                         SecondaryButton(title: "Share with a doctor", icon: "doc.text") {
                             report = HeartRecordPDF.make(user: user, readings: Array(allReadings.prefix(30)))
@@ -78,7 +74,6 @@ struct TrendsView: View {
             }
             .background(Tokens.Colors.adaptiveBackground)
             .navigationBarHidden(true)
-            .sheet(item: $selectedRecording) { HeartSoundDetailView(recording: $0) }
             .sheet(item: $report) { ShareSheet(items: [$0.url]) }
         }
     }
@@ -158,39 +153,6 @@ struct TrendsView: View {
                 .frame(minWidth: 70, alignment: .trailing)
         }
         .padding(.vertical, 12)
-    }
-
-    private var heartSounds: some View {
-        VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-            Text("Heart sounds")
-                .font(Tokens.Fonts.headline)
-                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-            if recordings.isEmpty {
-                Text("Recordings you make will appear here, ready to play or share.")
-                    .font(Tokens.Fonts.secondaryText)
-                    .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-            } else {
-                ListCard {
-                    ForEach(Array(recordings.prefix(10).enumerated()), id: \.element.id) { index, recording in
-                        if index > 0 { ListDivider() }
-                        Button { selectedRecording = recording } label: {
-                            HStack {
-                                Text(recording.timestamp.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
-                                    .font(Tokens.Fonts.bodyText)
-                                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                                Spacer()
-                                Image(systemName: "play.circle")
-                                    .font(.system(size: 20))
-                                    .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
-                            }
-                            .padding(.vertical, 12)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -289,53 +251,4 @@ struct ListDivider: View {
 struct SharedFile: Identifiable {
     let url: URL
     var id: URL { url }
-}
-
-// MARK: - Heart sound detail
-
-/// Detail sheet for a past heart-sound recording: listen back and share the audio.
-private struct HeartSoundDetailView: View {
-    let recording: HeartSoundRecording
-    @Environment(\.dismiss) private var dismiss
-    @State private var isSharePresented = false
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Tokens.Spacing.lg) {
-                    Text(recording.timestamp.formatted(date: .complete, time: .shortened))
-                        .font(Tokens.Fonts.headline)
-                        .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-
-                    HeartSoundPlayerView(url: recording.fileURL)
-
-                    SecondaryButton(title: "Share with a doctor", icon: "square.and.arrow.up") {
-                        isSharePresented = true
-                    }
-
-                    DisclaimerFooter(text: "Educational use only · Not medical advice.")
-                }
-                .padding(Tokens.Spacing.xl)
-            }
-            .background(Tokens.Colors.adaptiveBackground)
-            .navigationTitle("Heart sound")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-        .sheet(isPresented: $isSharePresented) {
-            ShareSheet(items: shareItems)
-        }
-    }
-
-    private var shareItems: [Any] {
-        var items: [Any] = ["OpenPulse heart sound recording from \(recording.timestamp.formatted(date: .abbreviated, time: .shortened)). Educational use only, not medical advice."]
-        if let url = recording.fileURL, FileManager.default.fileExists(atPath: url.path) {
-            items.append(url)
-        }
-        return items
-    }
 }

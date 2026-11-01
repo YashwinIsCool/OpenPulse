@@ -19,11 +19,6 @@ private let articles: [Article] = [
         body: "Heart rate variability (HRV) measures the tiny fluctuations in time between heartbeats. Higher HRV is generally associated with better recovery and lower stress, while lower HRV can reflect fatigue, illness, or stress. HRV is highly individual, so it's most useful when you compare it to your own baseline over weeks, not to anyone else's number."
     ),
     Article(
-        title: "Heart murmurs, explained simply",
-        summary: "Most murmurs are harmless — here's the difference.",
-        body: "A heart murmur is an extra whooshing sound during your heartbeat, caused by turbulent blood flow. Many murmurs are 'innocent' — harmless variations that need no treatment. Others can point to a structural issue worth evaluating. Only a clinician with a stethoscope and, if needed, an echocardiogram can tell the difference — an app can flag something worth checking, not diagnose it."
-    ),
-    Article(
         title: "Why breathing exercises affect your heart",
         summary: "The heart-lung-nervous system connection.",
         body: "Slow, controlled breathing activates your parasympathetic nervous system — your body's 'rest and digest' mode — which can lower heart rate and increase HRV within minutes. This is why a few minutes of paced breathing before a stressful moment, or before bed, can measurably calm your body, not just your mind."

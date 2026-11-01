@@ -66,7 +66,6 @@ enum HeartSampleData {
         deleteAll(DailyLog.self, context: context)
         deleteAll(BreathingSession.self, context: context)
         deleteAll(Insight.self, context: context)
-        deleteAll(HeartSoundRecording.self, context: context)
         user.streakCount = 0
         user.lastActiveDate = nil
     }
