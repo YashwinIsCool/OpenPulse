@@ -5,8 +5,9 @@ import SwiftData
 /// day — only when every task in the day's plan is complete — and resets to zero
 /// once a full day is skipped (checked both reactively and passively on launch).
 enum StreakManager {
-    /// The day's plan is complete when the heart rate check, stress log, and
-    /// breathing session are all done.
+    /// The day counts once the daily routine is finished (breathing is optional in it
+    /// when heart rate is normal), or when the heart rate check, check-in, and
+    /// breathing session were each done separately.
     static func allDailyTasksComplete(context: ModelContext, user: User, asOf date: Date = .now) -> Bool {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: date)
@@ -28,7 +29,9 @@ enum StreakManager {
         ))) ?? []
         let hasCheckIn = todaysLogs.contains { $0.hasCheckIn }
 
-        return hasHeartRate && hasCheckIn && hasBreathing
+        let finishedRoutine = todaysLogs.contains { $0.routineCompleted }
+
+        return finishedRoutine || (hasHeartRate && hasCheckIn && hasBreathing)
     }
 
     /// Call after any daily task completes: bumps the streak only once the full

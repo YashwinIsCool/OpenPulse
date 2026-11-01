@@ -50,6 +50,9 @@ enum Tokens {
         static let statusGood = Color(light: 0x15803D, dark: 0x4ADE80)
         static let statusWatch = Color(light: 0xB45309, dark: 0xFBBF24)
         static let statusFlag = Color(light: 0xB91C1C, dark: 0xF87171)
+
+        // Streak flame on Home.
+        static let streak = Color(light: 0xEA580C, dark: 0xFB923C)
     }
 
     enum Fonts {

@@ -10,7 +10,9 @@ final class DailyLog {
     var caffeineCups: Int?         // 0, 1, 2, 3 (3 = "3+")
     var exerciseMinutes: Int?      // 0, 15, 40, 75 (bucketed intensity)
     var mood: Int?                 // 1 (low) ... 5 (great)
-    var postPlanFeeling: Int?      // 1 (rough) ... 5 (great) — logged after the guided plan
+    var postPlanFeeling: Int?      // 1 (rough) ... 5 (great) — logged after the daily routine
+    // Default value keeps SwiftData's automatic migration working for existing installs.
+    var routineCompleted: Bool = false
     var notes: String
 
     init(

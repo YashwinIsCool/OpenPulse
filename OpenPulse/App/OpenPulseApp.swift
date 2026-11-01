@@ -26,6 +26,7 @@ struct OpenPulseApp: App {
             RootView()
                 .environmentObject(settings)
                 .tint(Tokens.Colors.primaryRed)
+                .preferredColorScheme(settings.appearance.colorScheme)
         }
         .modelContainer(sharedModelContainer)
     }

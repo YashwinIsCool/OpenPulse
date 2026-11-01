@@ -1,5 +1,27 @@
-import Foundation
+import SwiftUI
 import Combine
+
+/// Light, dark, or follow the iPhone's setting.
+enum Appearance: String, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system: return "Match iPhone"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
 
 /// Lightweight UserDefaults-backed settings: onboarding state and notification
 /// preferences. Profile data itself lives in the SwiftData `User` model.
@@ -42,6 +64,10 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(isDemoMode, forKey: Keys.isDemoMode) }
     }
 
+    @Published var appearance: Appearance {
+        didSet { defaults.set(appearance.rawValue, forKey: Keys.appearance) }
+    }
+
     private enum Keys {
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let notificationsEnabled = "notificationsEnabled"
@@ -51,6 +77,7 @@ final class AppSettings: ObservableObject {
         static let morningTime = "morningTime"
         static let eveningTime = "eveningTime"
         static let isDemoMode = "isDemoMode"
+        static let appearance = "appearance"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -61,6 +88,7 @@ final class AppSettings: ObservableObject {
         self.eveningBreathingEnabled = defaults.object(forKey: Keys.eveningBreathingEnabled) as? Bool ?? true
         self.weeklyInsightEnabled = defaults.object(forKey: Keys.weeklyInsightEnabled) as? Bool ?? true
         self.isDemoMode = defaults.bool(forKey: Keys.isDemoMode)
+        self.appearance = Appearance(rawValue: defaults.string(forKey: Keys.appearance) ?? "") ?? .system
 
         let calendar = Calendar.current
         self.morningTime = defaults.object(forKey: Keys.morningTime) as? Date

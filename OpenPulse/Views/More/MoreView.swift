@@ -29,6 +29,11 @@ struct MoreView: View {
                     NavigationLink { NotificationSettingsView() } label: {
                         row(icon: "bell", title: "Notifications", subtitle: nil)
                     }
+                    Picker(selection: $settings.appearance) {
+                        ForEach(Appearance.allCases) { Text($0.title).tag($0) }
+                    } label: {
+                        row(icon: "circle.lefthalf.filled", title: "Appearance", subtitle: nil)
+                    }
                 }
 
                 Section("About") {

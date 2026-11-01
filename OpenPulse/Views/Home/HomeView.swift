@@ -6,19 +6,21 @@ private enum HomeSheet: Identifiable {
     var id: Int { hashValue }
 }
 
-/// Home is deliberately simple: one obvious action (check your heart), where you
-/// stand from the last check, and a short plain list of everything else.
+/// Home is deliberately simple: one obvious action (the daily routine, then a plain
+/// heart rate check once it's done), where you stand from the last check, and a
+/// short plain list of everything else.
 struct HomeView: View {
     let user: User
 
     @Query(sort: \HeartRateReading.timestamp, order: .reverse) private var readings: [HeartRateReading]
+    @Query private var dailyLogs: [DailyLog]
 
     @State private var activeSheet: HomeSheet?
 
     private var lastReading: HeartRateReading? { readings.first }
 
-    private var checkedToday: Bool {
-        lastReading.map { Calendar.current.isDateInToday($0.timestamp) } ?? false
+    private var routineDoneToday: Bool {
+        dailyLogs.contains { Calendar.current.isDateInToday($0.date) && $0.routineCompleted }
     }
 
     var body: some View {
@@ -55,14 +57,39 @@ struct HomeView: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(Date.now, format: .dateTime.weekday(.wide).month(.wide).day())
-                .font(Tokens.Fonts.secondaryText)
-                .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
-            Text(user.name.isEmpty ? "Hello" : "Hi, \(user.name)")
-                .font(Tokens.Fonts.screenTitle)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(Date.now, format: .dateTime.weekday(.wide).month(.wide).day())
+                    .font(Tokens.Fonts.secondaryText)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextTertiary)
+                Text(user.name.isEmpty ? "Hello" : "Hi, \(user.name)")
+                    .font(Tokens.Fonts.screenTitle)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+            }
+            Spacer()
+            streakBadge
+        }
+    }
+
+    /// Days in a row the routine was finished. Grey until the first one.
+    private var streakBadge: some View {
+        let count = user.streakCount
+        return HStack(spacing: 4) {
+            Image(systemName: "flame.fill")
+                .foregroundStyle(count > 0 ? Tokens.Colors.streak : Tokens.Colors.adaptiveTextQuaternary)
+            Text("\(count)")
+                .monospacedDigit()
                 .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
         }
+        .font(Tokens.Fonts.bodyText.weight(.semibold))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Tokens.Colors.adaptiveCard)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1))
+        .padding(.top, Tokens.Spacing.xs)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(count == 1 ? "1 day streak" : "\(count) day streak")
     }
 
     // MARK: - The one main action
@@ -70,19 +97,30 @@ struct HomeView: View {
     private var checkBlock: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.lg) {
             VStack(alignment: .leading, spacing: Tokens.Spacing.xs) {
-                Text(checkedToday ? "You checked today" : "Check your heart")
+                Text(routineDoneToday ? "Routine done for today" : "Your daily routine")
                     .font(Tokens.Fonts.headline)
                     .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                Text("30 seconds. Rest a fingertip on the back camera.")
+                Text(routineDoneToday
+                     ? "Nice work. You can still check your heart rate any time."
+                     : "Check your heart rate, log how you're doing, and breathe if you need to.")
                     .font(Tokens.Fonts.secondaryText)
                     .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
             }
 
-            PrimaryButton(
-                title: checkedToday ? "Check again" : "Start check",
-                icon: "heart.fill"
-            ) {
-                activeSheet = .heartRate
+            if routineDoneToday {
+                PrimaryButton(title: "Check heart rate", icon: "heart.fill") {
+                    activeSheet = .heartRate
+                }
+            } else {
+                PrimaryButton(title: "Start daily routine", icon: "heart.fill") {
+                    activeSheet = .dailyPlan
+                }
+                Button("Just check heart rate") {
+                    activeSheet = .heartRate
+                }
+                .font(Tokens.Fonts.secondaryText.weight(.semibold))
+                .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
+                .frame(maxWidth: .infinity)
             }
 
             if let lastReading {
@@ -125,10 +163,6 @@ struct HomeView: View {
 
     private var moreList: some View {
         VStack(spacing: 0) {
-            listRow(icon: "list.bullet", title: "Guided check", subtitle: "Check, breathe, and check again") {
-                activeSheet = .dailyPlan
-            }
-            divider
             listRow(icon: "wind", title: "Breathing exercise", subtitle: nil) {
                 activeSheet = .breathing
             }
