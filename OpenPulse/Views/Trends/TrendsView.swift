@@ -69,7 +69,7 @@ struct TrendsView: View {
                     }
                 }
                 .padding(.horizontal, Tokens.Spacing.xl)
-                .padding(.top, Tokens.Spacing.lg)
+                .padding(.top, 36)
                 .padding(.bottom, Tokens.Spacing.xxl)
             }
             .background(Tokens.Colors.adaptiveBackground)

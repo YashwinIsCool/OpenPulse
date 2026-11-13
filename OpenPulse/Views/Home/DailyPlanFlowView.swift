@@ -230,11 +230,15 @@ struct DailyPlanFlowView: View {
                     todaysReading
                 }
 
-                VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
-                    Text("How do you feel now?")
-                        .font(.headline)
-                        .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
-                    ScaleRow(range: 1...5, lowLabel: "Rough", highLabel: "Great", selected: $feeling)
+                // Only worth asking after breathing: the check-in already asked how
+                // they're doing, so asking again right after a reading felt repetitive.
+                if didBreathe {
+                    VStack(alignment: .leading, spacing: Tokens.Spacing.md) {
+                        Text("How do you feel after breathing?")
+                            .font(.headline)
+                            .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+                        ScaleRow(range: 1...5, lowLabel: "Rough", highLabel: "Great", selected: $feeling)
+                    }
                 }
             }
             .padding(.horizontal, Tokens.Spacing.xl)

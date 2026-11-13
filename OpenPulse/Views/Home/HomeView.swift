@@ -16,6 +16,7 @@ struct HomeView: View {
     @Query private var dailyLogs: [DailyLog]
 
     @State private var activeSheet: HomeSheet?
+    @State private var showStreakInfo = false
 
     private var lastReading: HeartRateReading? { readings.first }
 
@@ -32,7 +33,8 @@ struct HomeView: View {
                     moreList
                 }
                 .padding(.horizontal, Tokens.Spacing.xl)
-                .padding(.top, Tokens.Spacing.lg)
+                // Lines the title up with the Help tab's large title.
+                .padding(.top, 40)
                 .padding(.bottom, Tokens.Spacing.xxl)
             }
             .background(Tokens.Colors.adaptiveBackground)
@@ -71,25 +73,35 @@ struct HomeView: View {
         }
     }
 
-    /// Days in a row the routine was finished. Grey until the first one.
+    /// Days in a row the routine was finished. Grey until the first one. Tap for
+    /// what it means and how close the app is to learning your patterns.
     private var streakBadge: some View {
         let count = user.streakCount
-        return HStack(spacing: 4) {
-            Image(systemName: "flame.fill")
-                .foregroundStyle(count > 0 ? Tokens.Colors.streak : Tokens.Colors.adaptiveTextQuaternary)
-            Text("\(count)")
-                .monospacedDigit()
-                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+        return Button {
+            showStreakInfo = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "flame.fill")
+                    .foregroundStyle(count > 0 ? Tokens.Colors.streak : Tokens.Colors.adaptiveTextQuaternary)
+                Text("\(count)")
+                    .monospacedDigit()
+                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+            }
+            .font(Tokens.Fonts.bodyText.weight(.semibold))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Tokens.Colors.adaptiveCard)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1))
         }
-        .font(Tokens.Fonts.bodyText.weight(.semibold))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Tokens.Colors.adaptiveCard)
-        .clipShape(Capsule())
-        .overlay(Capsule().stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1))
+        .buttonStyle(.plain)
         .padding(.top, Tokens.Spacing.xs)
-        .accessibilityElement(children: .ignore)
         .accessibilityLabel(count == 1 ? "1 day streak" : "\(count) day streak")
+        .accessibilityHint("Shows what your streak means")
+        .popover(isPresented: $showStreakInfo, arrowEdge: .top) {
+            StreakInfoView(streak: count, lastActive: user.lastActiveDate, readingCount: readings.count)
+                .presentationCompactAdaptation(.popover)
+        }
     }
 
     // MARK: - The one main action
@@ -217,5 +229,69 @@ struct HomeView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Streak popup
+
+/// The small popup behind the streak badge: how long the streak is, what counts,
+/// and how regular checks let the app learn what's usual for you.
+struct StreakInfoView: View {
+    let streak: Int
+    let lastActive: Date?
+    let readingCount: Int
+
+    private let forUsual = PersonalHeartModel.readingsForPersonal
+    private let forEffects = PersonalHeartModel.readingsForEffects
+
+    private var title: String {
+        switch streak {
+        case 0: return "No streak yet"
+        case 1: return "1-day streak"
+        default: return "\(streak)-day streak"
+        }
+    }
+
+    /// One short line under the title.
+    private var subtitle: String {
+        guard streak > 0, let lastActive,
+              let start = Calendar.current.date(byAdding: .day, value: -(streak - 1), to: lastActive) else {
+            return "Finish your daily routine to start one."
+        }
+        return "Daily routines in a row, since \(start.formatted(.dateTime.month(.abbreviated).day()))."
+    }
+
+    private var learningText: String {
+        if readingCount < forUsual {
+            let left = forUsual - readingCount
+            return "\(left) more \(left == 1 ? "check" : "checks") until it learns your usual heart rate."
+        }
+        if readingCount < forEffects {
+            let left = forEffects - readingCount
+            return "\(left) more \(left == 1 ? "check" : "checks") until it shows what changes your heart rate."
+        }
+        return "It now shows what changes your heart rate, like sleep and stress."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Tokens.Spacing.sm) {
+            HStack(spacing: 6) {
+                Image(systemName: "flame.fill")
+                    .foregroundStyle(streak > 0 ? Tokens.Colors.streak : Tokens.Colors.adaptiveTextQuaternary)
+                Text(title)
+                    .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+            }
+            .font(Tokens.Fonts.headline)
+            Text(subtitle)
+                .font(Tokens.Fonts.secondaryText)
+                .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
+            Divider().padding(.vertical, Tokens.Spacing.xs)
+            Text("OpenPulse gets smarter each time you check. \(learningText)")
+                .font(Tokens.Fonts.secondaryText)
+                .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(Tokens.Spacing.lg)
+        .frame(width: 300)
     }
 }
