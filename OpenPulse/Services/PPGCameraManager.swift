@@ -56,6 +56,9 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
     private var debugLog: [String] = []
     #endif
     private var startTime: CFAbsoluteTime = 0
+    /// First frame's capture timestamp and the wall-clock time it arrived.
+    /// Accessed only on the session queue.
+    private var ptsBase: (pts: Double, arrival: CFAbsoluteTime)?
     private var goodSince: Double?          // sample-time the signal first became good
     private var lastQualityEvalT: Double = 0
     // Active-time accounting so pauses (finger off) don't count toward the 30s.
@@ -104,6 +107,7 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
         }
 
         sessionQueue.async { [weak self] in
+            self?.ptsBase = nil
             self?.configureSession(device: device)
         }
     }
@@ -334,7 +338,19 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
         let avgBlue = blueTotal / count
         let avgGreen = greenTotal / count
         let avgRed = redTotal / count
-        let t = CFAbsoluteTimeGetCurrent() - startTime
+        // Time each frame by when the camera captured it, not when it reached us:
+        // delivery can lag by a few milliseconds, which blurs the timing of beats.
+        let arrival = CFAbsoluteTimeGetCurrent()
+        let pts = CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
+        var captured = arrival
+        if pts.isFinite {
+            if let base = ptsBase, pts > base.pts, pts - base.pts < 600 {
+                captured = base.arrival + (pts - base.pts)
+            } else {
+                ptsBase = (pts, arrival)
+            }
+        }
+        let t = captured - startTime
 
         DispatchQueue.main.async { [weak self] in
             self?.appendSample(t: t, green: avgGreen, red: avgRed, blue: avgBlue)
