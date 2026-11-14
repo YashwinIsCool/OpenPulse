@@ -8,6 +8,8 @@ struct HeartRateResultView: View {
     let user: User
     let bpm: Int
     let hrvMs: Double?
+    /// How close this reading is expected to be to the true heart rate.
+    let accuracy: HeartRateSignalProcessor.Accuracy
     let onSave: () -> Void
 
     @Query(sort: \HeartRateReading.timestamp, order: .reverse) private var pastReadings: [HeartRateReading]
@@ -62,7 +64,31 @@ struct HeartRateResultView: View {
             Text(category.headline)
                 .font(Tokens.Fonts.headline)
                 .foregroundStyle(category.statusColor)
+            accuracyBadge
+                .padding(.top, Tokens.Spacing.xs)
         }
+    }
+
+    /// How far to trust the number: shown on every reading, so people know it's an
+    /// estimate and how close it should be.
+    private var accuracyBadge: some View {
+        let high = accuracy == .within3
+        return HStack(spacing: 6) {
+            Image(systemName: high ? "checkmark.seal.fill" : "checkmark.seal")
+                .foregroundStyle(high ? Tokens.Colors.statusGood : Tokens.Colors.adaptiveTextSecondary)
+            Text(high ? "High confidence" : "Good confidence")
+                .foregroundStyle(Tokens.Colors.adaptiveTextPrimary)
+            + Text(" · within \(accuracy.rawValue) bpm")
+                .foregroundStyle(Tokens.Colors.adaptiveTextSecondary)
+        }
+        .font(Tokens.Fonts.secondaryText.weight(.medium))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Tokens.Colors.adaptiveCard)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(Tokens.Colors.adaptiveBorder, lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(high ? "High" : "Good") confidence. Within \(accuracy.rawValue) beats per minute.")
     }
 
     private var guidance: some View {

@@ -31,6 +31,7 @@ struct DailyPlanFlowView: View {
     @State private var afterBPM: Int?
     @State private var pendingBPM: Int = 0
     @State private var pendingHRV: Double?
+    @State private var pendingAccuracy: HeartRateSignalProcessor.Accuracy = .within5
     @State private var breathingType: BreathingExerciseType = .fourSevenEight
     @State private var breathingSeconds: Int = 60
     @State private var feeling: Int?
@@ -60,7 +61,7 @@ struct DailyPlanFlowView: View {
                     exitPlan()
                 })
             case .hrResult(let stage):
-                HeartRateResultView(user: user, bpm: pendingBPM, hrvMs: pendingHRV) {
+                HeartRateResultView(user: user, bpm: pendingBPM, hrvMs: pendingHRV, accuracy: pendingAccuracy) {
                     saveReading(bpm: pendingBPM, hrv: pendingHRV)
                     if stage == .baseline {
                         baselineBPM = pendingBPM
@@ -382,10 +383,11 @@ struct DailyPlanFlowView: View {
 
     private func enterRecording(_ stage: Stage) {
         phase = .hrRecording(stage)
-        camera.onFinished = { bpm, hrv in
-            if let bpm {
-                pendingBPM = bpm
-                pendingHRV = hrv
+        camera.onFinished = { reading in
+            if let reading {
+                pendingBPM = reading.bpm
+                pendingHRV = reading.hrvMs
+                pendingAccuracy = reading.accuracy
                 phase = .hrResult(stage)
             } else {
                 phase = .hrFailed(stage)

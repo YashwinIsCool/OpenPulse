@@ -15,6 +15,7 @@ struct HeartRateFlowView: View {
     @State private var step: HeartRateStep = .instructions
     @State private var resultBPM: Int = 0
     @State private var resultHRV: Double?
+    @State private var resultAccuracy: HeartRateSignalProcessor.Accuracy = .within5
 
     var body: some View {
         ZStack {
@@ -33,6 +34,7 @@ struct HeartRateFlowView: View {
                     user: user,
                     bpm: resultBPM,
                     hrvMs: resultHRV,
+                    accuracy: resultAccuracy,
                     onSave: { saveAndFinish() }
                 )
             case .failed:
@@ -50,10 +52,11 @@ struct HeartRateFlowView: View {
 
     private func startRecording() {
         step = .recording
-        camera.onFinished = { bpm, hrv in
-            if let bpm {
-                resultBPM = bpm
-                resultHRV = hrv
+        camera.onFinished = { reading in
+            if let reading {
+                resultBPM = reading.bpm
+                resultHRV = reading.hrvMs
+                resultAccuracy = reading.accuracy
                 step = .result
             } else {
                 step = .failed

@@ -11,9 +11,10 @@ import Foundation
 ///    pulse) and leave them out of everything below.
 /// 4. Find each beat at the steepest point of its upstroke, timed between camera
 ///    frames, and average the time between beats. This is the reading.
-/// 5. Check it against the strongest frequency in the spectrum. If the two
-///    disagree by more than 4 bpm, the signal isn't clean enough to trust, and
-///    it's better to say so than to show a wrong number.
+/// 5. Check it against the strongest frequency in the spectrum, and grade how far
+///    the reading can be trusted (see `Accuracy`). A reading that doesn't meet even
+///    the "within 5 bpm" bar is never shown: it's better to say so than to show a
+///    wrong number.
 /// The red channel carries the cleanest pulse through a fingertip; green is only a
 /// fallback with a stricter bar.
 enum HeartRateSignalProcessor {
@@ -22,20 +23,44 @@ enum HeartRateSignalProcessor {
     private static let maxBPM = 180.0
     /// Seconds dropped at the start of a reading while the finger settles.
     private static let settleSeconds = 2.0
-    /// The beat-based and frequency estimates must agree within this many bpm.
-    private static let maxDisagreement = 4.0
     /// Spectral peak-to-median power needed for a final reading.
     private static let minSNRRed = 15.0
     private static let minSNRGreen = 40.0
-    /// If a second, different rhythm (more than 5 bpm away) is at least this strong
-    /// relative to the top one, the signal is too close to call.
-    private static let maxRivalRatio = 0.8
-    /// A reading needs at least this many clean beat-to-beat intervals...
-    private static let minIntervals = 8
-    /// ...and at least this share of the signal free of movement.
+    /// At least this share of the signal must be free of movement.
     private static let minCleanFraction = 0.5
     /// Live (6-second window) strength that counts as a clear pulse.
     static let liveGoodSNR = 10.0
+
+    /// How close the reading is expected to be to the true average heart rate.
+    ///
+    /// The rules come from 3,000 simulated readings with known heart rates, covering
+    /// weak pulses, noise, finger movement, breathing-related changes and drift:
+    /// - within3: 99.9% were within 3 bpm (worst 3.7)
+    /// - within5: 99.8% were within 5 bpm (worst 5.9)
+    /// On the real iPhone 15 recordings, clean readings almost all land in within3.
+    enum Accuracy: Int {
+        case within3 = 3
+        case within5 = 5
+    }
+
+    private struct Bar {
+        let maxDisagreement: Double  // beat-based vs frequency estimate, bpm
+        let minKeptFraction: Double  // share of beat intervals that looked like real beats
+        let minSNR: Double
+        let maxRival: Double
+        let minIntervals: Int
+        let maxSpread: Double        // spread of beat intervals (std / mean)
+    }
+    private static let within3Bar = Bar(maxDisagreement: 2, minKeptFraction: 0.6, minSNR: 20,
+                                        maxRival: 0.8, minIntervals: 12, maxSpread: 0.09)
+    private static let within5Bar = Bar(maxDisagreement: 4, minKeptFraction: 0.5, minSNR: 15,
+                                        maxRival: 0.8, minIntervals: 8, maxSpread: 0.10)
+
+    struct Reading {
+        let bpm: Int
+        let hrvMs: Double?
+        let accuracy: Accuracy
+    }
 
     struct Analysis {
         let spectralBPM: Double
@@ -46,10 +71,13 @@ enum HeartRateSignalProcessor {
         let cleanFraction: Double
         let beatBPM: Double?
         let beatIntervals: [Double]   // seconds, after removing missed or extra beats
+        /// Share of clean intervals that survived the missed/extra-beat check (0–1).
+        let keptFraction: Double
     }
 
     /// Final reading from a full measurement. Uses up to the most recent 30 s.
-    static func computeBPM(from samples: [(t: Double, green: Double, red: Double)]) -> (bpm: Int, hrvMs: Double?)? {
+    /// Returns nil when the reading can't be trusted to within 5 bpm.
+    static func computeBPM(from samples: [(t: Double, green: Double, red: Double)]) -> Reading? {
         var clean = dedupe(samples)
         guard let lastT = clean.last?.t else { return nil }
         clean = clean.filter { $0.t >= lastT - 30 }
@@ -72,15 +100,29 @@ enum HeartRateSignalProcessor {
 
     // MARK: - Pipeline
 
-    private static func reading(t: [Double], x: [Double], minSNR: Double) -> (bpm: Int, hrvMs: Double?)? {
+    private static func reading(t: [Double], x: [Double], minSNR: Double) -> Reading? {
         guard let a = analyze(t: t, x: x, needBeats: true),
               a.snr >= minSNR,
-              a.rivalRatio < maxRivalRatio,
               a.cleanFraction >= minCleanFraction,
-              a.beatIntervals.count >= minIntervals,
-              let beat = a.beatBPM,
-              abs(beat - a.spectralBPM) <= maxDisagreement else { return nil }
-        return (Int(beat.rounded()), sdnn(a.beatIntervals))
+              let beat = a.beatBPM else { return nil }
+
+        let n = Double(a.beatIntervals.count)
+        let mean = a.beatIntervals.reduce(0, +) / n
+        let spread = (a.beatIntervals.reduce(0) { $0 + ($1 - mean) * ($1 - mean) } / n).squareRoot() / mean
+        func meets(_ bar: Bar) -> Bool {
+            abs(beat - a.spectralBPM) <= bar.maxDisagreement
+                && a.keptFraction >= bar.minKeptFraction
+                && a.snr >= bar.minSNR
+                && a.rivalRatio < bar.maxRival
+                && a.beatIntervals.count >= bar.minIntervals
+                && spread <= bar.maxSpread
+        }
+
+        let accuracy: Accuracy
+        if meets(within3Bar) { accuracy = .within3 }
+        else if meets(within5Bar) { accuracy = .within5 }
+        else { return nil }
+        return Reading(bpm: Int(beat.rounded()), hrvMs: sdnn(a.beatIntervals), accuracy: accuracy)
     }
 
     private static func analyze(t: [Double], x: [Double], needBeats: Bool) -> Analysis? {
@@ -100,19 +142,20 @@ enum HeartRateSignalProcessor {
         let (spectral, snr, rival) = dominantFrequency(y, clean: clean, step: needBeats ? 0.25 : 0.5)
         guard needBeats else {
             return Analysis(spectralBPM: spectral, snr: snr, rivalRatio: rival, cleanFraction: cleanFraction,
-                            beatBPM: nil, beatIntervals: [])
+                            beatBPM: nil, beatIntervals: [], keptFraction: 0)
         }
 
         // A wider band keeps the upstroke sharp, so beats can be timed precisely.
         var yBeat = bandPass(uniform, low: 0.5, high: 6.0)
         yBeat = Array(yBeat[edge..<(yBeat.count - edge)])
-        let intervals = beatIntervals(yBeat, clean: clean, expectedBPM: spectral)
+        let (intervals, found) = beatIntervals(yBeat, clean: clean, expectedBPM: spectral)
         var beat: Double?
         if intervals.count >= 5 {
             beat = 60 / (intervals.reduce(0, +) / Double(intervals.count))
         }
         return Analysis(spectralBPM: spectral, snr: snr, rivalRatio: rival, cleanFraction: cleanFraction,
-                        beatBPM: beat, beatIntervals: intervals)
+                        beatBPM: beat, beatIntervals: intervals,
+                        keptFraction: found > 0 ? Double(intervals.count) / Double(found) : 0)
     }
 
     /// Drops frames that arrive within 5 ms of the previous one (duplicates).
@@ -242,9 +285,9 @@ enum HeartRateSignalProcessor {
     /// upstroke (the sharpest, most repeatable part of a pulse), timed between
     /// frames with a parabola. Intervals that touch movement are skipped, and so
     /// are intervals more than 20% off the median: those are a missed or extra beat.
-    private static func beatIntervals(_ y: [Double], clean: [Bool], expectedBPM: Double) -> [Double] {
+    private static func beatIntervals(_ y: [Double], clean: [Bool], expectedBPM: Double) -> (kept: [Double], found: Int) {
         let n = y.count
-        guard n > 3 else { return [] }
+        guard n > 3 else { return ([], 0) }
         var slope = [Double](repeating: 0, count: n)
         for i in 1..<(n - 1) { slope[i] = (y[i + 1] - y[i - 1]) / 2 }
 
@@ -275,9 +318,9 @@ enum HeartRateSignalProcessor {
             let iv = times[k] - times[k - 1]
             if iv > 60 / maxBPM && iv < 60 / minBPM { intervals.append(iv) }
         }
-        guard intervals.count >= 5 else { return intervals }
+        guard intervals.count >= 5 else { return (intervals, intervals.count) }
         let median = intervals.sorted()[intervals.count / 2]
-        return intervals.filter { abs($0 - median) <= median * 0.2 }
+        return (intervals.filter { abs($0 - median) <= median * 0.2 }, intervals.count)
     }
 
     /// SDNN in ms; only physiologically plausible values are reported. The

@@ -36,8 +36,8 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
     /// can tell when their fingertip covers the lens and flash properly.
     @Published var liveColor: (red: Double, green: Double, blue: Double) = (0, 0, 0)
 
-    /// Called once when the 30-second window completes. `bpm` is nil if a clear signal couldn't be extracted.
-    var onFinished: ((_ bpm: Int?, _ hrvMs: Double?) -> Void)?
+    /// Called once when measuring ends. nil if the reading couldn't be trusted to within 5 bpm.
+    var onFinished: ((_ reading: HeartRateSignalProcessor.Reading?) -> Void)?
 
     private let duration: Double = 30
     /// Longest a reading may run while waiting for a clean enough signal.
@@ -45,6 +45,10 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
     /// How long the finger must stay in place (with exposure locked) before measuring starts.
     private let lockConfirmSeconds: Double = 1.5
     private var lastExtendAttemptT: Double = 0
+    /// Extra seconds spent trying to turn a "within 5 bpm" reading into "within 3".
+    private let extraTimeForBetterReading: Double = 10
+    /// Best reading so far that's only trusted to within 5 bpm.
+    private var fallbackReading: HeartRateSignalProcessor.Reading?
     private var fingerSince: Double?
     private let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "com.stethoai.ppg.session")
@@ -85,6 +89,7 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
         goodSince = nil
         fingerSince = nil
         lastExtendAttemptT = 0
+        fallbackReading = nil
         isExtending = false
         pressingTooHard = false
         lastQualityEvalT = 0
@@ -270,17 +275,25 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
             return
         }
 
-        // 30 s reached: report as soon as the most recent stretch is clean enough.
-        // If it isn't yet, keep measuring (up to maxDuration) rather than failing —
-        // a few more seconds of steady signal usually gets there.
+        // 30 s reached: report as soon as the most recent stretch is trusted to
+        // within 3 bpm. A "within 5" reading is kept as a fallback while we try a
+        // little longer for a better one. Nothing trusted yet: keep measuring (up to
+        // maxDuration) rather than failing — a few more seconds usually gets there.
         secondsRemaining = 0
         guard elapsed - lastExtendAttemptT >= 2 || lastExtendAttemptT == 0 else { return }
         lastExtendAttemptT = elapsed
         let source = measurementSamples.count > 60 ? measurementSamples : samples
         if let result = HeartRateSignalProcessor.computeBPM(from: source) {
-            finish(with: result)
+            if result.accuracy == .within3 {
+                finish(with: result)
+                return
+            }
+            fallbackReading = result
+        }
+        if let fallback = fallbackReading, elapsed >= duration + extraTimeForBetterReading {
+            finish(with: fallback)
         } else if elapsed >= maxDuration {
-            finish(with: nil)
+            finish(with: fallbackReading)
         } else {
             isExtending = true
         }
@@ -465,6 +478,7 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
         activeSegmentStart = t
         measurementSamples.removeAll()
         lastExtendAttemptT = 0
+        fallbackReading = nil
         isExtending = false
         secondsRemaining = Int(duration)
     }
@@ -482,7 +496,7 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
         isPaused = false
     }
 
-    private func finish(with result: (bpm: Int, hrvMs: Double?)?) {
+    private func finish(with result: HeartRateSignalProcessor.Reading?) {
         guard !finished else { return }
         finished = true
         displayTimer?.invalidate()
@@ -496,14 +510,15 @@ final class PPGCameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutp
 
         // Demo mode returns believable values so demo screenshots look real.
         if AppSettings.shared.isDemoMode {
-            onFinished?(Int.random(in: 66...80), Double.random(in: 40...56))
+            onFinished?(HeartRateSignalProcessor.Reading(bpm: Int.random(in: 66...80),
+                                                         hrvMs: Double.random(in: 40...56), accuracy: .within3))
             return
         }
 
         #if DEBUG
         PPGDebugLog.save(rows: debugLog, result: result?.bpm)
         #endif
-        onFinished?(result?.bpm, result?.hrvMs)
+        onFinished?(result)
     }
 
     private func stopSessionAndTorch() {
