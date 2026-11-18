@@ -50,7 +50,7 @@ mandate, the way a real team has separate rooms sharing one strategy.
 | `02-Engineering.md` | Engineering | The platform, architecture, our own security |
 | `03-Security-Research.md` | Security Research | The find→prove→fix→retest method |
 | `04-Design.md` | Design | Product UX, the report/fix experience, brand |
-| `05-Marketing.md` | Marketing | Brand, content, demand, the free-score funnel |
+| `05-Marketing/` | Marketing | Brand, content, demand, the free-score funnel (full kit inside) |
 | `06-GTM-Sales.md` | Go-To-Market / Sales | Customer development, pricing, the 20-interview test |
 | `07-Operations-Finance.md` | Operations / Finance | Model, fundraising, hiring, entity, tooling |
 | `08-Legal-Compliance.md` | Legal / Compliance | Authorization framework, data handling, rules of engagement |
